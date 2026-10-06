@@ -17,7 +17,6 @@ The layout is registered as a Dash page with the path '/about' and name 'About'.
 # Third-party imports
 import dash_bootstrap_components as dbc
 import dash_mantine_components as dmc
-from dash import dcc
 from dash import html
 from dash import register_page
 from dash_iconify import DashIconify

@@ -1,6 +1,10 @@
+import logging
+
 import pandas as pd
 
 from auth import w
+
+logger = logging.getLogger(__name__)
 
 
 def fetch_warehouses():
@@ -25,7 +29,7 @@ def fetch_warehouses():
                 ]
 
         except Exception as e:
-            print(f"Error fetching warehouses: {e}")
+            logger.exception(f"Error fetching warehouses: {e}")
             warehouse_options = [
                 {"label": f"Error fetching: {e}", "value": "", "disabled": True}
             ]
@@ -65,5 +69,5 @@ def run_query(table_name, conn):
                     df[col] = df[col].astype(str)
             return df
     except Exception as e:
-        print(f"Error running query '{query}': {e}")
+        logger.exception(f"Error running query for table {table_name!r}")
         raise

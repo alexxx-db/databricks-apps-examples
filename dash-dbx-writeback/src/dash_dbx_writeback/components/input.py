@@ -2,10 +2,8 @@ from typing import List, Dict, Any, Optional
 
 import dash_ag_grid as dag
 import dash_mantine_components as dmc
-from dash import html, dcc, no_update, callback, clientside_callback, register_page
+from dash import html, dcc
 
-from .tabs import tabs
-from ..sample_data import INITIAL_DATA
 
 EDITABLE_FIELDS = [
     "SELL_ID",

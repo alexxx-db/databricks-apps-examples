@@ -1,7 +1,4 @@
 import pytest
-from contextvars import copy_context
-from dash._callback_context import context_value
-from dash._utils import AttributeDict
 
 # Import the names of callback functions you want to test
 # Note: update_store_data doesn't exist in the current codebase

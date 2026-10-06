@@ -24,7 +24,6 @@ sys.path.insert(0, str(project_root / "src"))
 from dotenv import load_dotenv
 from databricks.sdk import WorkspaceClient
 import psycopg
-from psycopg_pool import ConnectionPool
 import uuid
 
 

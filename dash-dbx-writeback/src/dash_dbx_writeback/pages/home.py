@@ -1,5 +1,4 @@
 import dash
-from dash import html
 from ..components.input import render_input_grid
 
 # Register this page as the home page

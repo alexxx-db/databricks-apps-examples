@@ -1,7 +1,11 @@
+import logging
+
 from databricks import sql
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.core import Config
 from flask import request
+
+logger = logging.getLogger(__name__)
 
 cfg = Config()
 w = WorkspaceClient()
@@ -20,7 +24,7 @@ def fetch_sp_details():
                 local_sp_display_info = "Unknown"
         except Exception as e:
             local_sp_display_info = f"Error ({e})"
-            print(f"Error fetching SP details: {e}")
+            logger.exception(f"Error fetching SP details: {e}")
     return local_sp_display_info
 
 

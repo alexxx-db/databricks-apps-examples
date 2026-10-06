@@ -36,7 +36,8 @@ TABLE_DEFINITIONS = {
             issue_description STRING,
             repair_status VARCHAR(20),
             filed_at TIMESTAMP,
-            created_at TIMESTAMP
+            created_at TIMESTAMP,
+            created_by STRING
         )
         """,
         "insert": None,  # No initial data for this table
@@ -52,7 +53,8 @@ TABLE_DEFINITIONS = {
            compliance_status VARCHAR(50),
            valid_from DATE,
            valid_until DATE,
-           notes STRING
+           notes STRING,
+           updated_by STRING
         )
         """,
         "insert": """

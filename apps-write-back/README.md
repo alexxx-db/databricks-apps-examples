@@ -66,6 +66,15 @@ uv run python setup/setup_delta_tables.py
 uv run python setup/setup_postgres_tables.py
 ```
 
+Every write records the signed-in user (from the `X-Forwarded-Email` header the Apps proxy adds): `created_by` on form submissions and `updated_by` on grid edits. Tables created before these columns existed need them added once:
+
+```sql
+ALTER TABLE <catalog>.<schema>.form_service_calls ADD COLUMN created_by STRING;          -- Delta
+ALTER TABLE <catalog>.<schema>.table_regional_compliance ADD COLUMN updated_by STRING;
+ALTER TABLE <schema>.form_service_calls ADD COLUMN created_by VARCHAR(255);              -- Postgres
+ALTER TABLE <schema>.table_regional_compliance ADD COLUMN updated_by VARCHAR(255);
+```
+
 ## Local development
 
 To run the application locally for development:
@@ -102,3 +111,23 @@ apps-write-back/
 ├── databricks.yml            # Bundle: app, resources, dev/prod targets
 └── requirements.txt          # Python dependencies
 ```
+
+---
+
+&copy; 2025 Databricks, Inc. All rights reserved. The source in this example is provided subject to the Databricks License [https://databricks.com/db-license-source]. All included or referenced third party libraries are subject to the licenses set forth below.
+
+| library | description | license | source |
+|---|---|---|---|
+| dash | Framework for building analytical web applications | MIT | https://github.com/plotly/dash |
+| dash-ag-grid | AG Grid component for Dash | MIT | https://github.com/plotly/dash-ag-grid |
+| dash_mantine_components | Mantine components for Dash | MIT | https://github.com/snehilvj/dash-mantine-components |
+| dash-iconify | Icon components for Dash apps | MIT | https://github.com/snehilvj/dash-iconify |
+| databricks-sdk | Databricks SDK for Python | Apache 2.0 | https://github.com/databricks/databricks-sdk-py |
+| databricks-sql-connector | Databricks SQL Connector for Python | Apache 2.0 | https://github.com/databricks/databricks-sql-python |
+| SQLAlchemy | SQL toolkit and ORM | MIT | https://github.com/sqlalchemy/sqlalchemy |
+| psycopg | PostgreSQL adapter for Python | LGPL 3.0 | https://github.com/psycopg/psycopg |
+| pandas | Data analysis and manipulation library | BSD 3-Clause | https://github.com/pandas-dev/pandas |
+| pyarrow | Python library for Apache Arrow | Apache 2.0 | https://github.com/apache/arrow |
+| openpyxl | Excel file reading | MIT | https://foss.heptapod.net/openpyxl/openpyxl |
+| python-dotenv | .env file loading | BSD 3-Clause | https://github.com/theskumar/python-dotenv |
+| gunicorn | WSGI HTTP server | MIT | https://github.com/benoitc/gunicorn |

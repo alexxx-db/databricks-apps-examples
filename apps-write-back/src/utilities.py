@@ -1,4 +1,10 @@
 import dash_mantine_components as dmc
+from flask import request
+
+
+def current_user() -> str:
+    """Signed-in user's email, added by the Databricks Apps proxy. Absent when running locally."""
+    return request.headers.get("X-Forwarded-Email", "local-dev")
 
 
 def make_radiocard(label, value, description):

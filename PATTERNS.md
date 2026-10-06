@@ -26,7 +26,7 @@ A plain read-only dashboard usually doesn't need an app at all; use an AI/BI das
 Rules:
 - Default to on-behalf-of-user for Unity Catalog reads and writes so governance applies to the person using the app. See `fastapi-obo/app.py`, `auth-demo/auth.py`, and AppKit's `*.obo.sql` queries.
 - Never fall back to the service principal when a user token is missing in a deployed app; return 401 (`fastapi-obo/app.py`).
-- When writes do run as the service principal (e.g. Lakebase), store the user from `X-Forwarded-Email` in an `updated_by` column so changes stay attributable.
+- When writes do run as the service principal (e.g. Lakebase), store the user from `X-Forwarded-Email` in a server-set column (`created_by` / `updated_by` in `apps-write-back`, `SUBMITTED_BY` in `dash-dbx-writeback`). Ignore any value the browser sends for it.
 - The header doesn't exist locally, so local runs use your CLI credentials.
 
 ## Never build SQL from user input
@@ -67,7 +67,8 @@ Avoid bulk `INSERT ... VALUES (?, ?, …)` through the warehouse for app writes.
 
 ## Lakebase connections
 
-- Mint the password per connection with `w.database.generate_database_credential(...)` (`RotatingTokenConnection` in `dash-dbx-writeback`). Tokens expire, so never cache one for the pool's lifetime.
+- Use the workspace OAuth token as the password, fetched per connection with `WorkspaceClient().config.oauth_token().access_token` (`RotatingTokenConnection` in `dash-dbx-writeback`). The SDK refreshes it before its 1-hour expiry, so never store one for the pool's lifetime.
+- Don't derive the instance name from `PGHOST`. Hostnames look like `ep-jolly-river-….database…` and don't contain the name, so `generate_database_credential(instance_names=[...])` fails with "instance not found".
 - Keep pools small (around 5). An app has 2 vCPUs, and Lakebase connections are a shared, limited resource.
 - `psycopg` is not preinstalled, so list it in `requirements.txt`.
 

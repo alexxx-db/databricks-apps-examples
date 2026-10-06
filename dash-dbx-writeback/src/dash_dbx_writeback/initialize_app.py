@@ -5,6 +5,8 @@ Automatically initializes database tables with sample data on app startup
 if they are empty. This ensures the app has data to display on first run.
 """
 
+import logging
+
 import pandas as pd
 from typing import Dict, Any
 
@@ -14,10 +16,10 @@ from .database_operations import (
     check_table_exists,
     query_df,
     bulk_insert,
-    create_table_from_dataframe,
-    log
 )
 from .sample_data import INITIAL_DATA
+
+logger = logging.getLogger(__name__)
 
 
 def initialize_tables_on_startup():
@@ -25,9 +27,7 @@ def initialize_tables_on_startup():
     Initialize database tables with sample data if they are empty.
     Called automatically when the app starts.
     """
-    log("=" * 70)
-    log("🚀 CHECKING DATABASE INITIALIZATION")
-    log("=" * 70)
+    logger.info("CHECKING DATABASE INITIALIZATION")
     
     # Define tables to initialize
     tables_to_check = {
@@ -37,27 +37,23 @@ def initialize_tables_on_startup():
     for table_name, sample_data in tables_to_check.items():
         try:
             full_table_name = db_config.get_full_table_name(table_name)
-            log(f"📊 Checking table: {full_table_name}")
+            logger.info(f"Checking table: {full_table_name}")
             
             # Check if table exists
             if not check_table_exists(full_table_name):
-                log(f"  ⚠️  Table '{full_table_name}' does not exist")
-                log(f"  ➕ Creating table and inserting sample data...")
+                logger.warning(f"Table '{full_table_name}' does not exist")
+                logger.info("Creating table and inserting sample data...")
                 
                 # Create DataFrame from sample data
                 df = pd.DataFrame(sample_data)
                 
                 # Create table and insert data
                 result = bulk_insert(full_table_name, df, overwrite=True)
-                
-                if isinstance(result, int):
-                    log(f"  ✅ Created table '{full_table_name}' with {result} rows")
-                else:
-                    log(f"  ❌ Failed to create table: {result}")
+                logger.info(f"Created table '{full_table_name}' with {result} rows")
                 
             else:
                 # Table exists, check if it's empty
-                log(f"  ✓  Table '{full_table_name}' exists")
+                logger.info(f"Table '{full_table_name}' exists")
                 
                 # Count rows
                 count_query = f"SELECT COUNT(*) as count FROM {full_table_name}"
@@ -65,32 +61,24 @@ def initialize_tables_on_startup():
                 
                 if not count_df.empty:
                     row_count = count_df.iloc[0]['count']
-                    log(f"  📈 Current row count: {row_count}")
+                    logger.info(f"Current row count: {row_count}")
                     
                     if row_count == 0:
-                        log(f"  ⚠️  Table is empty, inserting sample data...")
+                        logger.warning("Table is empty, inserting sample data...")
                         
                         # Insert sample data
                         df = pd.DataFrame(sample_data)
                         result = bulk_insert(full_table_name, df, overwrite=False)
-                        
-                        if isinstance(result, int):
-                            log(f"  ✅ Inserted {result} rows into '{full_table_name}'")
-                        else:
-                            log(f"  ❌ Failed to insert data: {result}")
+                        logger.info(f"Inserted {result} rows into '{full_table_name}'")
                     else:
-                        log(f"  ✓  Table has data, skipping initialization")
+                        logger.info("Table has data, skipping initialization")
                         
         except Exception as e:
-            log(f"❌ Error initializing table '{table_name}': {e}")
-            import traceback
-            traceback.print_exc()
+            logger.exception(f"Error initializing table '{table_name}': {e}")
             # Continue with other tables even if one fails
             continue
     
-    log("=" * 70)
-    log("✅ DATABASE INITIALIZATION COMPLETE")
-    log("=" * 70)
+    logger.info("DATABASE INITIALIZATION COMPLETE")
 
 
 def get_table_stats() -> Dict[str, Any]:
@@ -130,17 +118,10 @@ def get_table_stats() -> Dict[str, Any]:
 
 if __name__ == "__main__":
     # Allow running this module directly for manual initialization
-    print("🔧 Manual Database Initialization")
-    print("=" * 70)
     initialize_tables_on_startup()
-    print("\n📊 Table Statistics:")
-    print("=" * 70)
-    stats = get_table_stats()
-    for table, info in stats.items():
+    for table, info in get_table_stats().items():
         if info.get('exists'):
-            print(f"  • {table}: {info.get('row_count', 0)} rows")
+            logger.info(f"Table {table}: {info.get('row_count', 0)} rows")
         else:
-            print(f"  • {table}: NOT FOUND")
-            if 'error' in info:
-                print(f"    Error: {info['error']}")
+            logger.warning(f"Table {table}: not found {info.get('error', '')}".strip())
 

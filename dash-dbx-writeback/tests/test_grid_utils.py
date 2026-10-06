@@ -1,7 +1,5 @@
 import pytest
 import pandas as pd
-import numpy as np
-from datetime import datetime
 from dash_dbx_writeback.components.grid_utils import create_column_definitions
 
 

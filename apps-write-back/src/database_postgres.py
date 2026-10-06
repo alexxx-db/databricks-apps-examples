@@ -225,13 +225,14 @@ def form_write_to_postgres(
     service_date: str,
     issue_description: str,
     repair_status: str,
+    created_by: str,
 ) -> int:
     logger.info("[DB] Attempting to write to PostgreSQL")
     full_table_name = _get_full_table_name("form_service_calls")
     query = text(
         f"""
-        INSERT INTO {full_table_name} (customer_name, equipment_model, issue_description, repair_status, filed_at, created_at)
-        VALUES (:customer_name, :equipment_model, :issue_description, :repair_status, :filed_at, :created_at)
+        INSERT INTO {full_table_name} (customer_name, equipment_model, issue_description, repair_status, filed_at, created_at, created_by)
+        VALUES (:customer_name, :equipment_model, :issue_description, :repair_status, :filed_at, :created_at, :created_by)
     """
     )
     params = {
@@ -241,6 +242,7 @@ def form_write_to_postgres(
         "repair_status": repair_status,
         "filed_at": service_date,
         "created_at": datetime.now(),
+        "created_by": created_by,
     }
     try:
         rowcount = db.execute_query(query, params)

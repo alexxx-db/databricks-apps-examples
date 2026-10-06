@@ -2,9 +2,9 @@
 Collapsible navbar on both desktop and mobile
 """
 
+import logging
+
 from typing import Dict, Any
-import datetime
-import inspect
 import atexit
 import dash
 
@@ -14,24 +14,12 @@ from dash_iconify import DashIconify
 
 from .database_operations import close_all_connections
 
-
-def log(message: str) -> None:
-    """Print a log message with timestamp and function name"""
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
-    # Get the calling function name
-    frame = inspect.currentframe()
-    if frame and frame.f_back:
-        func_name = frame.f_back.f_code.co_name
-    else:
-        func_name = "unknown"
-    print(f"[{timestamp}] [{func_name}] {message}")
+logger = logging.getLogger(__name__)
 
 
 _dash_renderer._set_react_version("18.2.0")
 
-log("=" * 60)
-log("INITIALIZING DASH APP")
-log("=" * 60)
+logger.info("INITIALIZING DASH APP")
 
 # Create the app instance FIRST
 app = Dash(
@@ -199,7 +187,7 @@ app.layout = dmc.MantineProvider(
 def toggle_navbar(
     mobile_opened: bool, desktop_opened: bool, navbar: Dict[str, Any]
 ) -> Dict[str, Any]:
-    log(f"CALLBACK: toggle_navbar - mobile: {mobile_opened}, desktop: {desktop_opened}")
+    logger.info(f"CALLBACK: toggle_navbar - mobile: {mobile_opened}, desktop: {desktop_opened}")
     navbar["collapsed"] = {
         "mobile": not mobile_opened,
         "desktop": not desktop_opened,
@@ -212,9 +200,7 @@ atexit.register(close_all_connections)
 
 
 if __name__ == "__main__":
-    log("=" * 60)
-    log("STARTING DASH APP SERVER")
-    log("=" * 60)
+    logger.info("STARTING DASH APP SERVER")
     try:
         app.run()  # local only; set DASH_DEBUG=true for dev tools
     finally:

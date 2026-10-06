@@ -65,6 +65,7 @@ def form_write_to_delta(
     service_date: str,
     issue_description: str,
     repair_status: str,
+    created_by: str,
 ) -> int:
     table_name = _get_full_table_name("form_service_calls")
     query = f"""INSERT INTO {table_name} (
@@ -73,8 +74,9 @@ def form_write_to_delta(
             issue_description,
             repair_status,
             filed_at,
-            created_at
-        ) VALUES (?, ?, ?, ?, ?, current_timestamp())
+            created_at,
+            created_by
+        ) VALUES (?, ?, ?, ?, ?, current_timestamp(), ?)
     """
     params = (
         customer_name,
@@ -82,6 +84,7 @@ def form_write_to_delta(
         issue_description,
         repair_status,
         service_date,
+        created_by,
     )
 
     result_df = execute_query(query, params)

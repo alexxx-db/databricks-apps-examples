@@ -1,7 +1,15 @@
+import logging
+import os
+
 import dash_mantine_components as dmc
 from dash import html, dcc, Dash, page_registry, page_container, get_asset_url
 from dash_iconify import DashIconify
 from collections import defaultdict
+
+logging.basicConfig(
+    level=os.getenv("LOG_LEVEL", "INFO"),
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+)
 
 
 def get_icon(icon):

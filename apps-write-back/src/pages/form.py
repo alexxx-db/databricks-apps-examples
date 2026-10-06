@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 
 from database_delta import form_write_to_delta
 from database_postgres import form_write_to_postgres
-from utilities import make_radiocard
+from utilities import current_user, make_radiocard
 
 load_dotenv()
 
@@ -195,6 +195,7 @@ def submit_form(
             service_date,
             issue_description,
             repair_status,
+            created_by=current_user(),
         )
         return [
             {

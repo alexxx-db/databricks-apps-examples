@@ -15,7 +15,6 @@ import pytest
 pytestmark = pytest.mark.integration
 import pandas as pd
 import datetime
-from typing import List, Dict, Any
 
 from dash_dbx_writeback.database_operations import (
     get_connection,
@@ -27,11 +26,6 @@ from dash_dbx_writeback.database_operations import (
     create_table_from_dataframe,
     bulk_insert,
     read_table,
-)
-from dash_dbx_writeback.callbacks.tables import (
-    initialize_table,
-    insert_overwrite_table,
-    ensure_table_exists,
 )
 from dash_dbx_writeback.config import db_config
 
@@ -169,33 +163,6 @@ class TestTableOperations:
         # Cleanup
         execute_sql(f"DROP TABLE IF EXISTS {full_name}")
     
-    def test_ensure_table_exists_creates_new(self, pg_connection_pool, full_test_table_name, sample_dataframe):
-        """Test ensure_table_exists creates table if it doesn't exist"""
-        from dash_dbx_writeback.callbacks.tables import ensure_table_exists
-        
-        with pg_connection_pool.connection() as conn:
-            existed = ensure_table_exists(full_test_table_name, sample_dataframe, conn)
-        
-        assert existed is False  # Table didn't exist before
-        
-        # Verify table was created
-        exists = check_table_exists(full_test_table_name)
-        assert exists is True
-    
-    def test_ensure_table_exists_existing_table(self, pg_connection_pool, full_test_table_name, sample_dataframe):
-        """Test ensure_table_exists with existing table"""
-        from dash_dbx_writeback.callbacks.tables import ensure_table_exists
-        
-        # Create table first
-        create_table_from_dataframe(full_test_table_name, sample_dataframe)
-        
-        # Call ensure_table_exists
-        with pg_connection_pool.connection() as conn:
-            existed = ensure_table_exists(full_test_table_name, sample_dataframe, conn)
-        
-        assert existed is True  # Table already existed
-
-
 class TestDataInsertion:
     """Test data insertion operations"""
     
@@ -253,22 +220,6 @@ class TestDataInsertion:
         # Verify all data exists
         df = read_table(full_test_table_name)
         assert len(df) == len(sample_dataframe) + len(new_data)
-    
-    def test_insert_overwrite_table(self, pg_connection_pool, full_test_table_name, sample_dataframe):
-        """Test insert_overwrite_table function from callbacks"""
-        result = insert_overwrite_table(
-            table_name=full_test_table_name,
-            df=sample_dataframe,
-            conn=pg_connection_pool,
-            overwrite=True
-        )
-        
-        assert isinstance(result, int)
-        assert result > 0
-        
-        # Verify data
-        df = read_table(full_test_table_name)
-        assert len(df) == len(sample_dataframe)
     
     def test_insert_with_null_values(self, pg_connection_pool, full_test_table_name):
         """Test inserting data with NULL values"""
@@ -450,24 +401,6 @@ class TestDataTypes:
 
 class TestProductData:
     """Test operations with product data similar to application data"""
-    
-    def test_initialize_table_with_product_data(self, pg_connection_pool, test_table_name):
-        """Test initializing table with product data"""
-        # initialize_table expects table name without schema prefix
-        # It will call db_config.get_full_table_name internally
-        result = initialize_table(test_table_name, pg_connection_pool)
-        
-        assert result > 0
-        
-        # Verify data - need to use full table name for read_table
-        full_table_name = db_config.get_full_table_name(test_table_name)
-        df = read_table(full_table_name)
-        assert len(df) > 0
-        assert "PRODUCT_NAME" in df.columns
-        assert "CATEGORY_NAME" in df.columns
-        
-        # Cleanup
-        execute_sql(f"DROP TABLE IF EXISTS {full_table_name}")
     
     def test_product_data_insertion(self, pg_connection_pool, full_test_table_name, product_dataframe):
         """Test inserting product-like data"""

@@ -1,33 +1,26 @@
+import logging
+
 import base64
 import io
 import datetime
 import uuid
 import time
-from typing import List, Dict, Any, Optional, Tuple, Union
+from typing import List, Dict, Any, Optional, Tuple
 
 import pandas as pd
-import dash_ag_grid as dag
 import dash_mantine_components as dmc
 from dash import Input, Output, State, callback, clientside_callback, callback_context
+from flask import request
 
-from ..database_operations import get_connection, return_connection
+from ..database_operations import bulk_insert, check_table_exists, execute_sql, query_df
 from ..config import db_config
-from .tables import (
-    insert_overwrite_table,
-    read_table,
-    check_table_exists,
-    initialize_table,
-)
+from ..sample_data import INITIAL_DATA
 from ..components.input import (
     CSV_TO_GRID_COL_MAP,
     get_null_description,
 )
 
-
-def log(message: str) -> None:
-    """Print a log message with timestamp"""
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
-    print(f"[{timestamp}] {message}")
+logger = logging.getLogger(__name__)
 
 
 # 1. Initialize store on load
@@ -40,54 +33,46 @@ def log(message: str) -> None:
 def initialize_store(
     _: str, existing_data: Optional[List[Dict[str, Any]]]
 ) -> List[Dict[str, Any]]:
-    log("=" * 50)
-    log("CALLBACK: initialize_store")
-    log(f"Triggered by: {callback_context.triggered}")
-    log(f"Existing data: {len(existing_data) if existing_data else 0} records")
-    log("=" * 50)
+    logger.info("CALLBACK: initialize_store")
+    logger.info(f"Triggered by: {callback_context.triggered}")
+    logger.info(f"Existing data: {len(existing_data) if existing_data else 0} records")
 
     # Always check the database on app start to ensure we have the latest data
     # You can change this behavior if you prefer to use local storage when available
 
     if existing_data:
-        log("→ Using existing local storage data")
+        logger.info("Using existing local storage data")
         return existing_data
 
     try:
-        from ..database_operations import query_df, check_table_exists, bulk_insert
-        from ..sample_data import INITIAL_DATA
-        
         table_name = db_config.get_full_table_name("layout_data")
-        log(f"✓ Full table name: {table_name}")
+        logger.info(f"Full table name: {table_name}")
 
         # Check if table exists
         table_exists = check_table_exists(table_name)
-        log(f"✓ Table exists: {table_exists}")
+        logger.info(f"Table exists: {table_exists}")
 
         # If table doesn't exist or is empty, initialize it with sample data
         if not table_exists:
-            log(f"→ Table {table_name} doesn't exist, initializing with sample data")
-            import pandas as pd
+            logger.info(f"Table {table_name} doesn't exist, initializing with sample data")
             df = pd.DataFrame(INITIAL_DATA)
             result = bulk_insert(table_name, df, overwrite=False)
-            log(f"✓ Initialize table result: {result}")
+            logger.info(f"Initialize table result: {result}")
 
         # Return empty - the update_grid_by_category callback will load the data
-        log("✓ Successfully initialized, data will be loaded by category callback")
+        logger.info("Successfully initialized, data will be loaded by category callback")
         return []
     except Exception as e:
-        log(f"✗ Error initializing store: {type(e).__name__}: {e}")
-        import traceback
-        log(f"✗ Full traceback: {traceback.format_exc()}")
+        logger.exception(f"Error initializing store: {type(e).__name__}: {e}")
 
         # If we have existing data in local storage and database fails, use it
         if existing_data:
-            log(
-                f"→ Using existing local storage data with {len(existing_data)} records"
+            logger.info(
+                f"Using existing local storage data with {len(existing_data)} records"
             )
             return existing_data
 
-        log(f"→ Falling back to initial data")
+        logger.info("Falling back to initial data")
         return []
 
 
@@ -97,9 +82,9 @@ def initialize_store(
     Input("csv-button", "n_clicks"),
 )
 def export_data_as_csv(n_clicks: Optional[int]) -> bool:
-    log(f"CALLBACK: export_data_as_csv - n_clicks: {n_clicks}")
+    logger.info(f"CALLBACK: export_data_as_csv - n_clicks: {n_clicks}")
     if n_clicks:
-        log("→ Triggering CSV export")
+        logger.info("Triggering CSV export")
         return True
     return False
 
@@ -119,47 +104,55 @@ def upload_data_to_uc(
     store_data: List[Dict[str, Any]],
     upload_clicks: Optional[str],
 ) -> Tuple[bool, List[dmc.Alert], bool]:
-    log(
+    logger.info(
         f"CALLBACK: upload_data_to_uc - n_clicks: {n_clicks}, has_upload: {upload_clicks is not None}"
     )
-    log(f"Store data: {len(store_data) if store_data else 0} records")
+    logger.info(f"Store data: {len(store_data) if store_data else 0} records")
 
     # Get validation alerts from the existing function
     alerts = get_null_description(store_data).children
-    log(f"Current alerts: {alerts}")
+    logger.info(f"Current alerts: {alerts}")
 
     # Only disable if there are critical errors (red alerts)
     has_critical_errors = any(alert.color not in ["green"] for alert in alerts)
-    log(f"Has critical errors: {has_critical_errors}")
+    logger.info(f"Has critical errors: {has_critical_errors}")
 
     if has_critical_errors:
         # Disable if critical errors
-        log("→ Disabling submit button due to errors")
+        logger.info("Disabling submit button due to errors")
         return True, alerts, False
 
     if n_clicks:
-        log("→ Processing forecast submission")
-        conn = get_connection()
+        logger.info("Processing forecast submission")
         forecast_id = (
             f"FCST-{datetime.datetime.now().strftime('%Y%m%d')}-{str(uuid.uuid4())[:8]}"
         )
-        log(f"→ Generated forecast ID: {forecast_id}")
+        logger.info(f"Generated forecast ID: {forecast_id}")
 
         df = pd.DataFrame(store_data)
         timestamp = datetime.datetime.now().isoformat()
         df["FORECAST_ID"] = forecast_id
         df["SUBMISSION_TIMESTAMP"] = timestamp
         df["ROW_ID"] = [f"{forecast_id}-{i+1:04d}" for i in range(len(df))]
+        # Signed-in user from the Databricks Apps proxy, so submissions stay attributable
+        df["SUBMITTED_BY"] = request.headers.get("X-Forwarded-Email", "local-dev")
 
         table_name = db_config.get_full_table_name("forecast_submissions")
-        log(f"→ Writing to table: {table_name}")
+        logger.info(f"Writing to table: {table_name}")
+        # Tables created before SUBMITTED_BY existed get the column; no-op otherwise
+        execute_sql(f'ALTER TABLE IF EXISTS {table_name} ADD COLUMN IF NOT EXISTS "SUBMITTED_BY" TEXT')
 
-        insert_overwrite_table(
-            df=df,
-            table_name=table_name,
-            conn=conn,
-            overwrite=False,
-        )
+        try:
+            bulk_insert(table_name, df)
+        except Exception as e:
+            error_alert = dmc.Alert(
+                title="Forecast was not submitted",
+                color="red",
+                radius="md",
+                children=[f"Saving to the database failed: {e}"],
+                style={"marginBottom": "8px"},
+            )
+            return False, [error_alert], False
 
         time.sleep(1)
 
@@ -172,7 +165,7 @@ def upload_data_to_uc(
             ],
             style={"marginBottom": "8px"},
         )
-        log("✓ Forecast submitted successfully")
+        logger.info("Forecast submitted successfully")
         return True, [success_alert], False
     return False, alerts, False
 
@@ -184,7 +177,7 @@ def upload_data_to_uc(
     prevent_initial_call=True,
 )
 def update_null_desc_box(store_data: List[Dict[str, Any]]) -> dmc.Stack:
-    log(
+    logger.info(
         f"CALLBACK: update_null_desc_box - {len(store_data) if store_data else 0} records"
     )
     return get_null_description(store_data)
@@ -193,10 +186,9 @@ def update_null_desc_box(store_data: List[Dict[str, Any]]) -> dmc.Stack:
 # 5. Grid rowData from store
 @callback(Output("ag-grid-table", "rowData"), Input("grid-data-store", "data"))
 def update_grid_from_store(store_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    log(
+    logger.info(
         f"CALLBACK: update_grid_from_store - {len(store_data) if store_data else 0} records"
     )
-    log(store_data)
     return store_data if store_data is not None else []
 
 
@@ -212,33 +204,33 @@ def update_grid_from_store(store_data: List[Dict[str, Any]]) -> List[Dict[str, A
 def update_data(
     contents: Optional[str], current_data: List[Dict[str, Any]], overwrite: bool
 ) -> Tuple[List[Dict[str, Any]], None]:
-    log(
+    logger.info(
         f"CALLBACK: update_data - has_contents: {contents is not None}, overwrite: {overwrite}"
     )
-    log(f"Current data: {len(current_data) if current_data else 0} records")
+    logger.info(f"Current data: {len(current_data) if current_data else 0} records")
 
     if contents is None:
         return current_data, None
 
-    log("→ Processing CSV upload")
+    logger.info("Processing CSV upload")
     _, content_string = contents.split(",")
     decoded = base64.b64decode(content_string)
     try:
         df = pd.read_csv(io.StringIO(decoded.decode("utf-8")))
-        log(f"→ Read CSV with {len(df)} rows, {len(df.columns)} columns")
+        logger.info(f"Read CSV with {len(df)} rows, {len(df.columns)} columns")
 
         df = df.rename(columns=CSV_TO_GRID_COL_MAP).dropna(how="all")
         new_data = df.to_dict("records")
-        log(f"→ Processed {len(new_data)} valid records")
+        logger.info(f"Processed {len(new_data)} valid records")
 
         if overwrite:
-            log("→ Overwriting existing data")
+            logger.info("Overwriting existing data")
             return new_data, None
         else:
-            log("→ Appending to existing data")
+            logger.info("Appending to existing data")
             return current_data + new_data, None
     except Exception as e:
-        log(f"✗ Error processing CSV file: {e}")
+        logger.error(f"Error processing CSV file: {e}")
         return current_data, None
 
 
@@ -252,46 +244,43 @@ def update_data(
 def update_grid_by_category(
     selected_category: Optional[str], current_data: List[Dict[str, Any]]
 ) -> List[Dict[str, Any]]:
-    log(f"CALLBACK: update_grid_by_category - category: {selected_category}")
+    logger.info(f"CALLBACK: update_grid_by_category - category: {selected_category}")
 
     if not selected_category:
-        log("→ No category selected, returning current data")
+        logger.info("No category selected, returning current data")
         return current_data
 
     try:
-        from ..database_operations import query_df
         
         table_name = db_config.get_full_table_name("layout_data")
-        log(f"→ Table name: {table_name}")
+        logger.info(f"Table name: {table_name}")
         
         # Use parameterized query to prevent SQL injection
         # Note: PostgreSQL column names are case-sensitive, columns are uppercase
         if selected_category != "All":
             query = f'SELECT * FROM {table_name} WHERE "CATEGORY_NAME" = %s'
             params = (selected_category,)
-            log(f"→ Executing filtered query: {query}")
-            log(f"→ With params: {params}")
+            logger.info(f"Executing filtered query: {query}")
+            logger.info(f"With params: {params}")
             filtered = query_df(query, params)
-            log(f"→ Query returned {len(filtered)} rows")
+            logger.info(f"Query returned {len(filtered)} rows")
         else:
             query = f"SELECT * FROM {table_name}"
-            log(f"→ Executing query for all categories: {query}")
+            logger.info(f"Executing query for all categories: {query}")
             filtered = query_df(query)
-            log(f"→ Query returned {len(filtered)} rows")
+            logger.info(f"Query returned {len(filtered)} rows")
 
         if filtered.empty:
-            log(f"⚠️  No data found for category: {selected_category}")
-            log(f"⚠️  Returning current data with {len(current_data)} records")
+            logger.warning(f"No data found for category: {selected_category}")
+            logger.warning(f"Returning current data with {len(current_data)} records")
             return current_data
         
         result = filtered.to_dict("records")
-        log(f"✓ Successfully filtered to {len(result)} records for category: {selected_category}")
+        logger.info(f"Successfully filtered to {len(result)} records for category: {selected_category}")
         return result
     except Exception as e:
-        import traceback
-        log(f"✗ Error filtering data: {e}")
-        log(f"✗ Traceback: {traceback.format_exc()}")
-        log(f"→ Returning current data with {len(current_data)} records")
+        logger.exception(f"Error filtering data: {e}")
+        logger.info(f"Returning current data with {len(current_data)} records")
         return current_data
 
 
@@ -306,9 +295,9 @@ def update_store_on_cell_change(
     cell_changed: Dict[str, Any], row_data: List[Dict[str, Any]]
 ) -> List[Dict[str, Any]]:
     if cell_changed:
-        log(f"CALLBACK: update_store_on_cell_change")
-        log(f"Cell changed: {cell_changed}")
-        log(f"Row data: {len(row_data) if row_data else 0} records")
+        logger.info("CALLBACK: update_store_on_cell_change")
+        logger.info(f"Cell changed: {cell_changed}")
+        logger.info(f"Row data: {len(row_data) if row_data else 0} records")
     return row_data
 
 
@@ -320,8 +309,8 @@ def update_store_on_cell_change(
     prevent_initial_call=True,
 )
 def reset_data(_: int) -> Tuple[None, None]:
-    log(f"CALLBACK: reset_data - n_clicks: {_}")
-    log("→ Clearing data and category selection")
+    logger.info(f"CALLBACK: reset_data - n_clicks: {_}")
+    logger.info("Clearing data and category selection")
     return None, []
 
 
@@ -340,8 +329,8 @@ def delete_selected_rows(
     Delete selected rows from the grid data store.
     https://dash.plotly.com/dash-ag-grid/row-selection
     """
-    log(f"CALLBACK: delete_selected_rows - n_clicks: {_}")
-    log(f"Selected rows: {len(selected_rows) if selected_rows else 0} records")
+    logger.info(f"CALLBACK: delete_selected_rows - n_clicks: {_}")
+    logger.info(f"Selected rows: {len(selected_rows) if selected_rows else 0} records")
 
     if not selected_rows or not current_data:
         return current_data
@@ -356,7 +345,7 @@ def delete_selected_rows(
         )
     ]
 
-    log(f"Removed {len(current_data) - len(filtered_data)} rows")
+    logger.info(f"Removed {len(current_data) - len(filtered_data)} rows")
     return filtered_data
 
 

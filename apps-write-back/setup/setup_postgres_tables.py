@@ -39,7 +39,8 @@ TABLE_DEFINITIONS = {
             issue_description TEXT,
             repair_status VARCHAR(20),
             created_at TIMESTAMP,
-            filed_at TIMESTAMP
+            filed_at TIMESTAMP,
+            created_by VARCHAR(255)
         );
         """,
         "insert": None,
@@ -55,7 +56,8 @@ TABLE_DEFINITIONS = {
            compliance_status VARCHAR(50),
            valid_from DATE,
            valid_until DATE,
-           notes TEXT
+           notes TEXT,
+           updated_by VARCHAR(255)
         );
         """,
         "insert": """

@@ -39,3 +39,15 @@ Use this sample as a starting point to build your own applications based on Data
 **Permissions.** The bundle grants the app's service principal `SELECT` on the index and `CAN_QUERY` on the embedding endpoint. Step 3 adds `MODIFY`. The principal also needs `USE CATALOG` / `USE SCHEMA` on the index's catalog and schema.
 
 > Every app user writes into the same index, and documents can't be deleted from the UI. For production, prefer a Delta Sync index over a governed source table.
+
+---
+
+&copy; 2024 Databricks, Inc. All rights reserved. The source in this example is provided subject to the Databricks License [https://databricks.com/db-license-source]. All included or referenced third party libraries are subject to the licenses set forth below.
+
+| library | description | license | source |
+|---|---|---|---|
+| gradio | Python library for creating customizable UI components for ML models | Apache 2.0 | https://github.com/gradio-app/gradio |
+| langchain-community, langchain-text-splitters | PDF loading and text chunking | MIT | https://github.com/langchain-ai/langchain |
+| pypdf | PDF parsing | BSD 3-Clause | https://github.com/py-pdf/pypdf |
+| openai | OpenAI-compatible client used for Databricks embedding endpoints | Apache 2.0 | https://github.com/openai/openai-python |
+| databricks-sdk | Databricks SDK for Python | Apache 2.0 | https://github.com/databricks/databricks-sdk-py |

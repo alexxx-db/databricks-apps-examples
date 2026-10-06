@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 
 import database_delta as db
 import database_postgres as db_pg
-from utilities import make_radiocard
+from utilities import current_user, make_radiocard
 
 load_dotenv()
 
@@ -79,7 +79,7 @@ def create_column_defs(df):
         return []
     defs = [{"field": i} for i in df.columns]
     for col_def in defs:
-        if col_def["field"] == "compliance_id":
+        if col_def["field"] in ("compliance_id", "updated_by"):
             col_def["editable"] = False
     return defs
 
@@ -406,10 +406,12 @@ def save_changes(n_clicks, changes, grid_data, refresh_trigger_value):
             logger.warning("No records to update after filtering.")
             return dash.no_update, dash.no_update, dash.no_update, dash.no_update
 
-        df_updates = pd.DataFrame(update_records)
+        # updated_by is set by the server; ignore whatever the browser sent
+        df_updates = pd.DataFrame(update_records).drop(columns=["updated_by"], errors="ignore")
         not_editable = set(df_updates.columns) - EDITABLE_COLUMNS - {pk_column}
         if not_editable:
             raise ValueError(f"Columns are not editable: {sorted(not_editable)}")
+        df_updates["updated_by"] = current_user()
 
         config["update_func"](df_updates, table_name)
 

@@ -1,7 +1,11 @@
+import logging
+
 import dash
 import dash_mantine_components as dmc
 from dash import callback, Input, Output, State, dash_table
 from .functions import get_connection, read_table
+
+logger = logging.getLogger(__name__)
 
 dash.register_page(
     module=__name__,
@@ -73,5 +77,6 @@ def read_table_callback(n_clicks, table_name):
         columns = [{"name": col, "id": col, "deletable": False} for col in df.columns]
 
         return data, columns
-    except Exception as e:
+    except Exception:
+        logger.exception(f"Error reading table {table_name!r}")
         return [], []

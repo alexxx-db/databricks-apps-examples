@@ -9,8 +9,11 @@ Configuration can be provided in two ways:
 2. Simplified LAKEBASE_* variables for local development (auto-populated via WorkspaceClient)
 """
 
+import logging
+
 import os
-from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 
 class DatabaseConfig:
@@ -24,9 +27,6 @@ class DatabaseConfig:
         self.POOL_MIN_SIZE = int(os.getenv("POOL_MIN_SIZE", "1"))
         self.POOL_MAX_SIZE = int(os.getenv("POOL_MAX_SIZE", "5"))
         
-        # Instance name (needed for OAuth token generation)
-        self.INSTANCE_NAME = None
-        
         # Check if PG* variables are set (Databricks deployment mode)
         if os.getenv("PGHOST"):
             # Use standard PostgreSQL environment variables (set by Databricks)
@@ -35,8 +35,6 @@ class DatabaseConfig:
             self.DATABASE = os.getenv("PGDATABASE", "")
             self.USER = os.getenv("PGUSER", "")
             self.SSL_MODE = os.getenv("PGSSLMODE", "require")
-            # Extract instance name from PGHOST for OAuth (format: instance-name.region.databricks.net)
-            self.INSTANCE_NAME = self.HOST.split('.')[0] if self.HOST else None
         else:
             # Local development mode: Use simplified variables and auto-populate
             self._init_from_lakebase_variables()
@@ -60,12 +58,8 @@ class DatabaseConfig:
             self.DATABASE = ""
             self.USER = ""
             self.SSL_MODE = "require"
-            self.INSTANCE_NAME = None
             return
-        
-        # Store instance name for OAuth token generation
-        self.INSTANCE_NAME = instance_name
-        
+
         # Use WorkspaceClient to get workspace details
         try:
             w = WorkspaceClient()
@@ -82,7 +76,7 @@ class DatabaseConfig:
             
         except Exception as e:
             # If WorkspaceClient fails, set empty values
-            print(f"Warning: Could not auto-populate database config: {e}")
+            logger.warning(f"Could not auto-populate database config: {e}")
             self.HOST = ""
             self.PORT = "5432"
             self.DATABASE = database_name

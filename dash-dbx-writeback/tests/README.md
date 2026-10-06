@@ -264,13 +264,14 @@ def test_my_feature(self, pg_connection_pool, full_test_table_name, sample_dataf
 ```python
 def test_app_workflow(self, pg_connection_pool, test_table_name):
     """Test actual application workflow"""
-    from dash_dbx_writeback.callbacks.tables import initialize_table
-    
-    # Test with actual app function
-    result = initialize_table(test_table_name, pg_connection_pool)
-    
-    # Cleanup
+    from dash_dbx_writeback.database_operations import bulk_insert
+    from dash_dbx_writeback.sample_data import INITIAL_DATA
+
     full_name = db_config.get_full_table_name(test_table_name)
+    # Same helper the app uses; raises on failure
+    assert bulk_insert(full_name, pd.DataFrame(INITIAL_DATA)) > 0
+
+    # Cleanup
     execute_sql(f"DROP TABLE IF EXISTS {full_name}")
 ```
 

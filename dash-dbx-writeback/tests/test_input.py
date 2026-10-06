@@ -1,8 +1,6 @@
-import pytest
 from dash import html
 import dash_mantine_components as dmc
 from dash_dbx_writeback.components.input import get_null_description, render_input_grid, COLUMN_DEFS, EDITABLE_FIELDS
-from dash_dbx_writeback.sample_data import INITIAL_DATA
 
 
 def test_get_sample_data(custom_data):

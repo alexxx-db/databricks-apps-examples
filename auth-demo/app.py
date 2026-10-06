@@ -1,3 +1,6 @@
+import logging
+import os
+
 import dash
 import dash_mantine_components as dmc
 from dash import Dash, Input, Output, State, callback, dcc, html
@@ -16,6 +19,11 @@ from sql import (
     run_query,
 )
 from utils import create_data_table, get_icon
+
+logging.basicConfig(
+    level=os.getenv("LOG_LEVEL", "INFO"),
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+)
 
 app = Dash(__name__, external_stylesheets=[dmc.styles.ALL])
 server = app.server  # WSGI entrypoint for gunicorn (see app.yml)
@@ -461,13 +469,6 @@ def update_header_and_warehouses(_):
     # No longer need to read from potentially stale globals
     # wh_options = warehouse_options
     # wh_value = initial_warehouse_value
-
-    # --- DEBUGGING ---
-    # print("--- Callback update_header_and_warehouses ---")
-    # print(f"Warehouses being sent to dropdown ({len(wh_options)}): {wh_options}")
-    # print(f"Initial value being sent: {wh_value}")
-    # print("---------------------------------------------")
-    # --- END DEBUGGING ---
 
     return (
         header_username_display,
