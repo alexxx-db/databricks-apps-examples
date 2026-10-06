@@ -5,7 +5,7 @@ import pandas as pd
 import dash_mantine_components as dmc
 from dash import Input, Output, callback
 
-from ..database_operations import get_connection, return_connection
+from ..database_operations import query_df
 from ..config import db_config
 
 
@@ -21,17 +21,14 @@ def log(message: str) -> None:
 )
 def populate_forecast_dropdown(_: str):
     log("CALLBACK: populate_forecast_dropdown")
-    try:
-        conn = get_connection()
-        table_name = db_config.get_full_table_name("forecast_submissions")
-        query = f"SELECT DISTINCT FORECAST_ID FROM {table_name} ORDER BY SUBMISSION_TIMESTAMP DESC LIMIT 50"
-        with conn.cursor() as cursor:
-            cursor.execute(query)
-            forecast_ids = [row[0] for row in cursor.fetchall()]
-        return [{"value": fid, "label": fid} for fid in forecast_ids]
-    except Exception as e:
-        log(f"Error fetching forecast IDs: {e}")
-        return []
+    table_name = db_config.get_full_table_name("forecast_submissions")
+    # Columns are created quoted-uppercase by bulk_insert; latest 50 runs, newest first.
+    # query_df returns an empty frame on error (e.g. no submissions table yet).
+    df = query_df(
+        f'SELECT "FORECAST_ID" FROM {table_name} '
+        'GROUP BY "FORECAST_ID" ORDER BY MAX("SUBMISSION_TIMESTAMP") DESC LIMIT 50'
+    )
+    return [{"value": fid, "label": fid} for fid in df.get("FORECAST_ID", [])]
 
 
 @callback(
@@ -45,8 +42,6 @@ def load_forecast_results(forecast_id: str):
     if not forecast_id:
         return [], "Select a forecast run to view results."
     try:
-        from ..database_operations import query_df
-        
         table_name = db_config.get_full_table_name("forecast_results")
         
         # Use parameterized query to prevent SQL injection

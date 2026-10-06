@@ -27,8 +27,8 @@ export function AnalyticsPage() {
         <CardHeader>
           <CardTitle>Daily NYC taxi trips, Jan–Feb 2016</CardTitle>
           <CardDescription>
-            Source: samples.nyctaxi.trips (Databricks sample data). Queries run as you, so Unity Catalog
-            permissions apply.
+            Source: samples.nyctaxi.trips (Databricks sample data). Queries run as you, so Unity Catalog permissions
+            apply.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

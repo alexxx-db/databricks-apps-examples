@@ -1,5 +1,5 @@
 import { createBrowserRouter, RouterProvider, NavLink, Outlet } from 'react-router';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Button,
   Card,
@@ -17,21 +17,25 @@ import { AnalyticsPage } from './pages/analytics/AnalyticsPage';
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   `px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-    isActive
-      ? 'bg-primary text-primary-foreground'
-      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+    isActive ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
   }`;
 
 const mobileNavLinkClass = ({ isActive }: { isActive: boolean }) =>
   `block px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-    isActive
-      ? 'bg-primary text-primary-foreground'
-      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+    isActive ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
   }`;
 
 type NavLinkClassFn = (props: { isActive: boolean }) => string;
 
-function NavLinks({ className, linkClass, onClick }: { className?: string; linkClass: NavLinkClassFn; onClick?: () => void }) {
+function NavLinks({
+  className,
+  linkClass,
+  onClick,
+}: {
+  className?: string;
+  linkClass: NavLinkClassFn;
+  onClick?: () => void;
+}) {
   return (
     <nav className={className}>
       <NavLink to="/" end className={linkClass} onClick={onClick}>
@@ -48,10 +52,13 @@ function Layout() {
   const isMobile = useIsMobile();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
-  // Close mobile nav when viewport crosses to desktop
-  useEffect(() => {
+  // Close mobile nav when viewport crosses to desktop. Adjusting state during render (not in an effect)
+  // avoids an extra render: https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes
+  const [wasMobile, setWasMobile] = useState(isMobile);
+  if (isMobile !== wasMobile) {
+    setWasMobile(isMobile);
     if (!isMobile) setMobileNavOpen(false);
-  }, [isMobile]);
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -70,7 +77,11 @@ function Layout() {
               <SheetHeader>
                 <SheetTitle>Navigation</SheetTitle>
               </SheetHeader>
-              <NavLinks className="flex flex-col gap-1" linkClass={mobileNavLinkClass} onClick={() => setMobileNavOpen(false)} />
+              <NavLinks
+                className="flex flex-col gap-1"
+                linkClass={mobileNavLinkClass}
+                onClick={() => setMobileNavOpen(false)}
+              />
             </SheetContent>
           </Sheet>
         </div>
@@ -101,12 +112,8 @@ function HomePage() {
   return (
     <div className="max-w-2xl mx-auto space-y-6 mt-8">
       <div className="text-center">
-        <h2 className="text-3xl font-bold mb-2 text-foreground">
-          Welcome to your Databricks App
-        </h2>
-        <p className="text-lg text-muted-foreground">
-          Powered by Databricks AppKit
-        </p>
+        <h2 className="text-3xl font-bold mb-2 text-foreground">Welcome to your Databricks App</h2>
+        <p className="text-lg text-muted-foreground">Powered by Databricks AppKit</p>
       </div>
 
       <Card className="shadow-lg">
@@ -114,7 +121,9 @@ function HomePage() {
           <CardTitle>Getting Started</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <p className="text-sm text-muted-foreground">Your app is ready. Explore the resources below to continue building.</p>
+          <p className="text-sm text-muted-foreground">
+            Your app is ready. Explore the resources below to continue building.
+          </p>
           <ul className="space-y-2 text-sm">
             <li>
               <a

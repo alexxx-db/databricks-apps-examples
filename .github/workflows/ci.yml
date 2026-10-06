@@ -53,6 +53,7 @@ jobs:
       # --ignore-scripts skips typegen, which needs a warehouse; generated types are committed
       - run: npm ci --ignore-scripts
       - run: npm run typecheck
+      - run: npm run lint
       - run: npm run lint:ast-grep
       # No `npm test`: the template has no tests and vitest passes with none. Add one before gating on it.
 
