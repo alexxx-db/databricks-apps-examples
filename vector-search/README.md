@@ -14,6 +14,20 @@ Use this sample as a starting point to build your own applications based on Data
 
 ## Setup
 
-[Clone this GitHub repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) and [load it as a Git folder](https://docs.databricks.com/en/repos/index.html) in your Databricks Workspace.
+1. **Create the index (once).** [Load this repository as a Git folder](https://docs.databricks.com/en/repos/index.html), open the [setup.py](setup.py) notebook, set `schema_name` and choose **Run all**. It creates a vector search endpoint (unless you give it one) and a direct access index, then prints the deploy command.
+2. **Deploy the app** from this folder:
 
-Next, follow the instructions in the [setup.py](setup.py) notebook to deploy the application and required Databricks resources.
+   ```bash
+   databricks auth login --host https://<workspace> --profile <PROFILE>
+   databricks bundle deploy -t dev --var vector_search_index=<catalog.schema.index> --profile <PROFILE>
+   databricks bundle open vector_search_app -t dev --profile <PROFILE>
+   ```
+
+| Variable | Meaning |
+|---|---|
+| `vector_search_index` | Full name of the index created by `setup.py` |
+| `embedding_endpoint` | Embedding endpoint (default `databricks-gte-large-en`) |
+
+**Permissions.** The bundle grants the app's service principal `SELECT` and `MODIFY` on the index and `CAN_QUERY` on the embedding endpoint. It also needs `USE CATALOG` / `USE SCHEMA` on the index's catalog and schema.
+
+> Every app user writes into the same index, and documents can't be deleted from the UI. For production, prefer a Delta Sync index over a governed source table.

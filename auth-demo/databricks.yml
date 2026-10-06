@@ -1,0 +1,32 @@
+bundle:
+  name: auth_demo
+
+variables:
+  warehouse_id:
+    description: SQL warehouse the app's service principal may use
+
+resources:
+  apps:
+    auth_demo:
+      name: auth-demo-${bundle.target}
+      description: Service principal vs on-behalf-of-user authorization
+      source_code_path: .
+      user_api_scopes:
+        - sql
+      resources:
+        - name: sql-warehouse
+          sql_warehouse:
+            id: ${var.warehouse_id}
+            permission: CAN_USE
+      lifecycle:
+        started: true
+
+targets:
+  dev:
+    mode: development
+    default: true
+  prod:
+    mode: production
+    workspace:
+      # Deploy prod from CI as a service principal so there is exactly one copy
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}

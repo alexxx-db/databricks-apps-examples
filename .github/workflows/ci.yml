@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Lint (runtime errors only, see ruff.toml)
+        run: uvx ruff check .
+
+      - name: Requirements resolve on the Apps runtime (Python 3.11)
+        run: |
+          for f in */requirements.txt; do
+            echo "::group::$f"
+            uv pip compile --python-version 3.11 --quiet "$f" -o "$RUNNER_TEMP/resolved.txt"
+            echo "::endgroup::"
+          done
+
+      - name: dash-dbx-writeback unit tests (no Lakebase needed)
+        working-directory: dash-dbx-writeback
+        run: uv run --python 3.11 --extra dev python -m pytest -m "not integration"
+
+      - name: fastapi-obo tests
+        working-directory: fastapi-obo
+        run: uv run --no-project --python 3.11 --with-requirements requirements.txt --with pytest --with httpx python -m pytest
+
+  appkit:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: appkit-analytics
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: appkit-analytics/package-lock.json
+      # --ignore-scripts skips typegen, which needs a warehouse; generated types are committed
+      - run: npm ci --ignore-scripts
+      - run: npm run typecheck
+      - run: npm run lint:ast-grep
+      - run: npm test
+
+  bundles:
+    runs-on: ubuntu-latest
+    # Add these repo secrets (a service principal on a sandbox workspace) to enable this job
+    env:
+      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+      DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: databricks/setup-cli@main
+        if: env.DATABRICKS_HOST != ''
+      - name: Validate every bundle (dev and prod)
+        if: env.DATABRICKS_HOST != ''
+        run: |
+          set -e
+          validate() {
+            dir=$1; shift
+            for target in dev prod; do
+              (cd "$dir" && databricks bundle validate --strict -t "$target" "$@")
+            done
+          }
+          validate auth-demo          --var warehouse_id=ci-placeholder
+          validate apps-shell         --var warehouse_id=ci-placeholder
+          validate apps-write-back    --var warehouse_id=ci-placeholder --var lakebase_instance=ci-placeholder
+          validate dash-dbx-writeback --var instance_name=ci-placeholder
+          validate vector-search      --var vector_search_index=main.default.ci_placeholder
+          validate fastapi-obo        --var warehouse_id=ci-placeholder
+          validate appkit-analytics   --var sql_warehouse_id=ci-placeholder

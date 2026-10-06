@@ -28,6 +28,11 @@ def log(message: str) -> None:
     print(f"[{timestamp}] {message}")
 
 
+def quote_ident(name: str) -> str:
+    """Quote a Postgres identifier. Column names come from uploaded CSV headers, so escape embedded quotes."""
+    return '"' + str(name).replace('"', '""') + '"'
+
+
 def get_workspace_client() -> WorkspaceClient:
     """Get or create Databricks workspace client"""
     global _workspace_client
@@ -269,7 +274,7 @@ def create_table_from_dataframe(table_name: str, df: pd.DataFrame) -> bool:
             sql_type = "TIMESTAMP"
         else:
             sql_type = "TEXT"
-        columns.append(f'"{col}" {sql_type}')
+        columns.append(f"{quote_ident(col)} {sql_type}")
         log(f"  Column '{col}' -> {sql_type}")
     
     create_query = f"""
@@ -307,7 +312,7 @@ def bulk_insert(table_name: str, df: pd.DataFrame, overwrite: bool = False) -> U
         
         # Prepare data
         columns = df.columns.tolist()
-        columns_str = ", ".join([f'"{col}"' for col in columns])
+        columns_str = ", ".join(quote_ident(col) for col in columns)
         records = df.replace({pd.NA: None}).to_records(index=False)
         data = [tuple(row) for row in records]
         

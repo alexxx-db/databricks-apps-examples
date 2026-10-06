@@ -101,6 +101,9 @@ uv run python -m pytest tests/test_postgresql_integration.py --cov=dash_dbx_writ
 # Using marker
 uv run python -m pytest -m integration -v
 
+# Everything that runs without a database (what CI runs)
+uv run python -m pytest -m "not integration" -v
+
 # By file pattern
 uv run python -m pytest tests/test_postgresql_integration.py -v
 ```
@@ -324,10 +327,7 @@ DROP SCHEMA test_schema CASCADE;
 
 ## Related Documentation
 
-- **Setup Guide**: `docs/SETUP-GUIDE.md`
-- **Architecture**: `docs/ARCHITECTURE.md`
-- **Database Schema**: `database_setup/README.md`
-- **Migration Guide**: `POSTGRESQL_MIGRATION.md`
+- **App setup and deployment**: [`../README.md`](../README.md)
 
 ---
 

@@ -8,7 +8,7 @@ It includes the ability to add validation steps and show warnings for duplicate 
 
 It's a complete example for building sophisticated multi-page apps using the latest libraries in the Python ecosystem. This includes tools like `uv`, `pytest` (for TDD and automated unit tests), and modern PostgreSQL database patterns.
 
-> **Note**: This application was migrated from Databricks Unity Catalog to PostgreSQL. See [POSTGRESQL_MIGRATION.md](POSTGRESQL_MIGRATION.md) for details about the migration.
+> **Note**: This application was migrated from Databricks Unity Catalog to PostgreSQL (Lakebase).
 
 
 ## 🚀 Quick Start
@@ -36,8 +36,20 @@ export $(grep -v '^#' .env | xargs) && uv run python -m src.dash_dbx_writeback
 
 ---
 
-**New to this application?** See the complete setup guide:
-👉 **[docs/SETUP-GUIDE.md](docs/SETUP-GUIDE.md)** 👈
+### Deploy (3 commands)
+
+```bash
+databricks auth login --host https://<workspace> --profile <PROFILE>
+databricks bundle deploy -t dev --var instance_name=<LAKEBASE_INSTANCE> --profile <PROFILE>
+databricks bundle open excel_the_dash_way -t dev --profile <PROFILE>
+```
+
+| Variable | Meaning |
+|---|---|
+| `instance_name` | Lakebase database instance name |
+| `database` | Database in that instance (default `databricks_postgres`) |
+
+The bundle grants the app's service principal `CAN_CONNECT_AND_CREATE` on the database; `PGHOST`, `PGDATABASE`, `PGUSER` and `PGPORT` are injected automatically. On each start, `app.yml` runs `initialize_app` once (create and seed tables) and then serves the app with gunicorn.
 
 ## Prerequisites
 
@@ -176,42 +188,26 @@ The application uses **standard PostgreSQL environment variables** (`PGHOST`, `P
 - **Development/Production Parity**: Same database in both environments ensures consistency
 
 > [!NOTE]
-> - The application will automatically create required tables on first run
-> - Tables will be initialized with sample data if they don't exist  
-> - See [docs/SETUP-GUIDE.md](docs/SETUP-GUIDE.md) for detailed setup instructions
-> - See [POSTGRESQL_MIGRATION.md](POSTGRESQL_MIGRATION.md) for migration from Databricks
+> - Tables are created and seeded once per app start (`python -m src.dash_dbx_writeback.initialize_app` in `app.yml`; the local `python -m src.dash_dbx_writeback` does the same)
+> - Uploaded CSV headers become column names; they are quoted with `quote_ident` so a header can't inject SQL
 
 ## 📂 Project Structure
 
 ```
 dash-dbx-writeback/
-├── config.py                    # Centralized configuration (dataclass-based)
-├── database_setup/              # SQL schema files and documentation
-│   ├── complete_schema_setup.sql
-│   └── README.md
-├── setup_scripts/               # Automated setup and verification scripts
-│   ├── initialize_database.py
-│   └── verify_setup.py
-├── docs/                        # Comprehensive documentation
-│   ├── SETUP-GUIDE.md          # **START HERE** - Complete setup guide
-│   └── ARCHITECTURE.md          # Technical architecture overview
-└── src/dash_dbx_writeback/     # Application source code
-    ├── app.py                   # Main Dash application
-    ├── database_operations.py   # Centralized database operations
-    ├── callbacks/               # Event handlers
-    ├── components/              # Reusable UI components
-    ├── pages/                   # Multi-page application pages
-    ├── config/                  # Configuration modules
-    ├── data/                    # Sample data generation
-    └── ml/                      # Machine learning modules
+├── app.yml                       # Apps runtime: init tables, then gunicorn
+├── databricks.yml                # Bundle: variables, dev/prod targets
+├── resources/excel_the_dash_way.yml  # App + Lakebase resource
+├── example.env                   # Local configuration template
+├── src/dash_dbx_writeback/
+│   ├── app.py                    # Dash app (exposes `server` for gunicorn)
+│   ├── initialize_app.py         # Create/seed tables
+│   ├── config.py                 # Lakebase connection settings
+│   ├── database_operations.py    # Connection pool, OAuth token rotation, SQL helpers
+│   ├── callbacks/ components/ pages/
+│   └── sample_data.py
+└── tests/                        # `-m "not integration"` runs without a database
 ```
-
-## 📚 Documentation
-
-- **[docs/SETUP-GUIDE.md](docs/SETUP-GUIDE.md)** - **START HERE** - Complete step-by-step setup ⭐
-- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** - Technical architecture and design
-- **[database_setup/README.md](database_setup/README.md)** - Database schema details
-- **[POSTGRESQL_MIGRATION.md](POSTGRESQL_MIGRATION.md)** - Migration guide from Databricks
 
 ## 🆘 Troubleshooting
 
@@ -252,8 +248,6 @@ export $(grep -v '^#' .env | xargs) && uv run python -m src.dash_dbx_writeback
 - Verify instance name is correct: Check in Databricks SQL → Databases
 - Ensure instance is running and accessible
 
-See **[docs/SETUP-GUIDE.md](docs/SETUP-GUIDE.md)** for detailed troubleshooting
-
 ---
 
 &copy; 2025 Databricks, Inc. All rights reserved. The source in this repository is provided subject to the Databricks License [https://databricks.com/db-license-source]. All included or referenced third party libraries are subject to the licenses set forth below.
@@ -263,6 +257,7 @@ See **[docs/SETUP-GUIDE.md](docs/SETUP-GUIDE.md)** for detailed troubleshooting
 | dash                     | Framework for building analytical web applications | MIT          | https://github.com/plotly/dash                      |
 | dash-ag-grid             | AG Grid Plugin for Dash apps                       | MIT          | https://github.com/plotly/dash-ag-grid              |
 | dash_mantine_components  | Mantine components for Dash                        | MIT          | https://github.com/snehilvj/dash-mantine-components |
+| gunicorn                 | WSGI HTTP server                                   | MIT          | https://github.com/benoitc/gunicorn                 |
 | pandas                   | Data analysis and manipulation library             | BSD 3-Clause | https://github.com/pandas-dev/pandas                |
 | psycopg2-binary          | PostgreSQL adapter for Python                      | LGPL         | https://github.com/psycopg/psycopg2                 |
 | SQLAlchemy               | SQL toolkit and ORM for Python                     | MIT          | https://github.com/sqlalchemy/sqlalchemy            |

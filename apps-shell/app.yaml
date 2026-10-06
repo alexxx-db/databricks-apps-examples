@@ -1,5 +1,11 @@
-command: ["python", "app.py"]
+command:
+  - gunicorn
+  - app:server
+  - --workers=2
+  - --bind=0.0.0.0:8000
+  # Match the Apps proxy's 120s request limit; gunicorn's 30s default kills cold-warehouse queries
+  - --timeout=120
 
-env_variables:
-  DATABRICKS_SQL_WAREHOUSE_ID: ""
-  DATABRICKS_GENIE_SPACE_ID: ""
+env:
+  - name: DATABRICKS_SQL_WAREHOUSE_ID
+    valueFrom: sql-warehouse

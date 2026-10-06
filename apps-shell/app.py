@@ -9,10 +9,12 @@ def get_icon(icon):
 
 
 app = Dash(
+    __name__,
     external_stylesheets=dmc.styles.ALL,
     use_pages=True,
     pages_folder="components",
 )
+server = app.server  # WSGI entrypoint for gunicorn (see app.yaml)
 
 pages_by_category = defaultdict(list)
 root_pages = []
@@ -121,4 +123,4 @@ app.layout = dmc.MantineProvider(
 )
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run()  # local only; set DASH_DEBUG=true for dev tools

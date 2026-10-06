@@ -37,68 +37,33 @@ This example [Dash](https://dash.plotly.com/) application demonstrates **three w
 
 ```bash
 git clone https://github.com/databricks-solutions/databricks-apps-examples.git
-cd databricks-apps-examples/apps-data-entry
+cd databricks-apps-examples/apps-write-back
 ```
 
-### 2. Create a Databricks Apps resource
+### 2. Deploy the app
 
-1. **Authenticate with Databricks:**
+```bash
+databricks auth login --host https://<workspace> --profile <PROFILE>
+databricks bundle deploy -t dev --profile <PROFILE> \
+  --var warehouse_id=<WAREHOUSE_ID> --var lakebase_instance=<LAKEBASE_INSTANCE>
+databricks apps get apps-write-back-dev --profile <PROFILE>   # note service_principal_client_id
+```
 
-   ```bash
-   databricks auth login --host <databricks-workspace-url>
-   ```
+| Variable | Meaning |
+|---|---|
+| `warehouse_id` | SQL warehouse used for Unity Catalog reads and writes |
+| `lakebase_instance` | Lakebase database instance name |
+| `lakebase_database` | Database in that instance (default `databricks_postgres`) |
 
-1. Create a new Databricks Apps resource using either the CLI or UI:
-
-   ```bash
-   databricks apps create apps-write-back
-   ```
-
-   Wait 2-3 minutes for the app resource to reach `ACTIVE` state.
-
-1. Note the `service_principal_client_id` from the output. You can also find it in the _Environment_ tab in the app UI as the `DATABRICKS_CLIENT_ID` environment variable (e.g., `58fe4a02-16f8-4547-ae6c-2978a3637a52`).
+The bundle grants the app's service principal `CAN_USE` on the warehouse and `CAN_CONNECT_AND_CREATE` on the Lakebase database. Lakebase connection details (`PGHOST`, `PGDATABASE`, `PGUSER`, `PGPORT`) are injected automatically. Catalog, schema and Postgres schema names are plain values in `app.yaml` (`main` / `default` / `public`); change them there if you use different ones.
 
 ### 3. Database setup
 
-This repository includes interactive setup scripts to seed Unity Catalog and PostgreSQL tables with example data.
-
-**Set up Delta tables:**
+The interactive setup scripts seed the example tables and grant the app's service principal (the `service_principal_client_id` from step 2) access to them:
 
 ```bash
 uv run python setup/setup_delta_tables.py
-```
-
-**Set up PostgreSQL tables:**
-
-```bash
 uv run python setup/setup_postgres_tables.py
-```
-
-### 4. Configure app.yaml
-
-Update the `app.yaml` file with your environment-specific configuration:
-
-| Variable                | Example Value                                   | Where to Find It                              |
-| ----------------------- | ----------------------------------------------- | --------------------------------------------- |
-| `WAREHOUSE_HTTP_PATH`   | `/sql/1.0/warehouses/762f1d756f0424f6`          | SQL warehouse → _Connection details_ tab      |
-| `UNITY_CATALOG_CATALOG` | `main`                                          | Same catalog used in database setup           |
-| `UNITY_CATALOG_SCHEMA`  | `default`                                       | Same schema used in database setup            |
-| `POSTGRES_HOST`         | `instance-111abc.database.cloud.databricks.com` | Lakehouse database → _Connection details_ tab |
-| `POSTGRES_DATABASE`     | `databricks_postgres`                           | Same database used in database setup          |
-| `POSTGRES_SCHEMA`       | `public`                                        | Same schema used in database setup            |
-
-### 5. Deploy the application
-
-Copy the app source code to your workspace files:
-
-```bash
-databricks sync . /Workspace/Users/user@example.com/databricks_apps/apps-write-back
-```
-
-Deploy the application:
-
-```bash
-databricks apps deploy apps-write-back --source-code-path /Workspace/Users/user@example.com/databricks_apps/apps-write-back
 ```
 
 ## Local development
@@ -111,7 +76,7 @@ To run the application locally for development:
    databricks auth login --host <databricks-workspace-url> --profile <my-profile>
    ```
 
-2. **Start the application:**
+2. **Start the application** (set `DATABRICKS_WAREHOUSE_ID` and `PGHOST` in `.env` first; these are injected automatically when deployed):
 
    ```bash
    databricks apps run-local --prepare-environment --profile <my-profile>
@@ -134,5 +99,6 @@ apps-write-back/
 │   └── utilities.py          # Helper functions
 ├── setup/                    # Database setup scripts
 ├── app.yaml                  # Application configuration
+├── databricks.yml            # Bundle: app, resources, dev/prod targets
 └── requirements.txt          # Python dependencies
 ```

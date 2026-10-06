@@ -1,18 +1,13 @@
+# Create/seed tables once per container start, then serve with gunicorn.
+# PGHOST / PGDATABASE / PGUSER / PGPORT are injected by the app's `database` resource.
 command:
-  - python
-  - -m
-  - src.dash_dbx_writeback
-
-resources:
-  - name: sql-warehouse
-  - name: postgres-database
+  - sh
+  - -c
+  - >-
+    python -m src.dash_dbx_writeback.initialize_app &&
+    exec gunicorn src.dash_dbx_writeback.app:server
+    --workers=2 --bind=0.0.0.0:8000 --timeout=120
 
 env:
-  - name: 'DATABRICKS_CATALOG'
-    value: 'daveok'
-  - name: 'DATABRICKS_SCHEMA'
-    value: 'excel_app'
-  - name: 'DATABRICKS_WAREHOUSE_ID'
-    valueFrom: 'sql-warehouse'
-  - name: 'LAKEBASE_SCHEMA'
-    value: 'public'
+  - name: LAKEBASE_SCHEMA
+    value: public

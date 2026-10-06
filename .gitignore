@@ -1,6 +1,25 @@
 *conf*.json
+!tsconfig*.json
 .DS_Store
 __pycache__
 .idea/
 .env
 .vscode
+# Per-developer AI assistant skill installs (Databricks AI Dev Kit) — not part of the examples
+.agents/
+.ai-dev-kit/
+.cursor/
+.gemini/
+.kiro/
+.opencode/
+.windsurf/
+.claude/skills/
+.github/skills/
+GEMINI.md
+
+# Bundle state, environments and build output
+.databricks/
+.venv/
+node_modules/
+.pytest_cache/
+.build/

@@ -4,8 +4,6 @@ import dash_ag_grid as dag
 import dash_mantine_components as dmc
 from dash import html, dcc
 
-from ..database_operations import get_connection
-from ..config import db_config
 
 # Placeholder column definitions. These will be dynamically generated once data is loaded.
 DEFAULT_COLUMN_DEFS: List[Dict[str, Any]] = [
@@ -15,21 +13,6 @@ DEFAULT_COLUMN_DEFS: List[Dict[str, Any]] = [
 ]
 
 
-def fetch_forecast_ids() -> List[str]:
-    """Fetch distinct forecast IDs from the forecast_submissions table."""
-    try:
-        conn = get_connection()
-        table_name = get_full_table_name("forecast_submissions")
-        query = f"SELECT DISTINCT FORECAST_ID FROM {table_name} ORDER BY SUBMISSION_TIMESTAMP DESC LIMIT 50"
-        with conn.cursor() as cursor:
-            cursor.execute(query)
-            result = [row[0] for row in cursor.fetchall()]
-        return result
-    except Exception:
-        # Fallback to empty list if DB fails
-        return []
-
-
 def render_results_grid() -> html.Div:
     """Renders the results grid layout."""
 
@@ -37,7 +20,7 @@ def render_results_grid() -> html.Div:
     forecast_select = dmc.Select(
         id="results-forecast-select",
         label="Select Forecast Run",
-        data=[{"value": fid, "label": fid} for fid in fetch_forecast_ids()],
+        data=[],  # filled on page load by populate_forecast_dropdown (callbacks/results_callbacks.py)
         searchable=True,
         clearable=True,
         persistence=True,

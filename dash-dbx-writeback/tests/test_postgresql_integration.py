@@ -10,6 +10,9 @@ These tests verify the end-to-end functionality of:
 """
 
 import pytest
+
+# Needs a live Lakebase instance; CI runs `pytest -m "not integration"`
+pytestmark = pytest.mark.integration
 import pandas as pd
 import datetime
 from typing import List, Dict, Any

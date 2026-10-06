@@ -1,0 +1,40 @@
+bundle:
+  name: apps_write_back
+
+variables:
+  warehouse_id:
+    description: SQL warehouse used for Unity Catalog reads/writes
+  lakebase_instance:
+    description: Lakebase database instance name
+  lakebase_database:
+    description: Database inside the Lakebase instance
+    default: databricks_postgres
+
+resources:
+  apps:
+    apps_write_back:
+      name: apps-write-back-${bundle.target}
+      description: Form, grid-edit and Excel writeback to Unity Catalog and Lakebase
+      source_code_path: .
+      resources:
+        - name: sql-warehouse
+          sql_warehouse:
+            id: ${var.warehouse_id}
+            permission: CAN_USE
+        - name: database
+          database:
+            instance_name: ${var.lakebase_instance}
+            database_name: ${var.lakebase_database}
+            permission: CAN_CONNECT_AND_CREATE
+      lifecycle:
+        started: true
+
+targets:
+  dev:
+    mode: development
+    default: true
+  prod:
+    mode: production
+    workspace:
+      # Deploy prod from CI as a service principal so there is exactly one copy
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}

@@ -1,3 +1,7 @@
 command:
-  - python
-  - app.py
+  - gunicorn
+  - app:server
+  - --workers=2
+  - --bind=0.0.0.0:8000
+  # Match the Apps proxy's 120s request limit; gunicorn's 30s default kills cold-warehouse queries
+  - --timeout=120

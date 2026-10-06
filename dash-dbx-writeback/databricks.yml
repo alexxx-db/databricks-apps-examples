@@ -1,31 +1,22 @@
 bundle:
   name: dash_dbx_writeback
 
-workspace:
-  root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
-
 include:
   - resources/*.yml
 
 variables:
-  catalog:
-    description: Catalog to be created and assets to be deployed to
-    default: daveok
-  schema:
-    description: Schema to be created and assets to be deployed to
-    default: excel_app
-  database:
-    description: Database to be used for the database
-    default: databricks_postgres
   instance_name:
-    description: Instance name to be used for the database
-    default: daveok
-
+    description: Lakebase database instance name
+  database:
+    description: Database inside the Lakebase instance
+    default: databricks_postgres
 
 targets:
-  azure-east:
-    mode: production 
+  dev:
+    mode: development
     default: true
+  prod:
+    mode: production
     workspace:
-      host: https://adb-984752964297111.11.azuredatabricks.net 
+      # Deploy prod from CI as a service principal so there is exactly one copy
       root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}

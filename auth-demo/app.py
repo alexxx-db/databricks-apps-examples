@@ -17,7 +17,8 @@ from sql import (
 )
 from utils import create_data_table, get_icon
 
-app = Dash(external_stylesheets=[dmc.styles.ALL])
+app = Dash(__name__, external_stylesheets=[dmc.styles.ALL])
+server = app.server  # WSGI entrypoint for gunicorn (see app.yml)
 app.title = "Databricks Auth Demo"
 
 app.layout = dmc.MantineProvider(

@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 from contextlib import contextmanager
 
 import pandas as pd
@@ -12,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-WAREHOUSE_HTTP_PATH = os.getenv("WAREHOUSE_HTTP_PATH")
+WAREHOUSE_HTTP_PATH = f"/sql/1.0/warehouses/{os.getenv('DATABRICKS_WAREHOUSE_ID')}"
 DELTA_CATALOG = os.getenv("UNITY_CATALOG_CATALOG")
 DELTA_SCHEMA = os.getenv("UNITY_CATALOG_SCHEMA")
 
@@ -112,6 +113,10 @@ def update_delta_records(
         with get_connection() as conn:
             with conn.cursor() as cursor:
                 update_cols = [col for col in df_updates.columns if col != pk_column]
+                # Column names arrive from the browser (grid rowData); quoting alone can't stop injection
+                bad = [c for c in [pk_column, *update_cols] if not re.fullmatch(r"\w+", c)]
+                if bad:
+                    raise ValueError(f"Invalid column names: {bad}")
                 all_cols_for_values = [pk_column] + update_cols
                 df_ordered = df_updates[all_cols_for_values]
 

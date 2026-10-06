@@ -19,14 +19,15 @@ layout = html.Div(
                 dcc.Markdown(
                     """
             To enable all features, configure your Databricks 
-            credentials in the `app.yaml` file.
+            SQL warehouse as an app resource (see `databricks.yml`).
             """
                 ),
                 dmc.CodeHighlight(
                     language="yaml",
-                    code="""env_variables:
-    DATABRICKS_SQL_WAREHOUSE_ID: your-warehouse-id
-            """,
+                    code="""env:
+  - name: DATABRICKS_SQL_WAREHOUSE_ID
+    valueFrom: sql-warehouse
+""",
                 ),
             ]
         )

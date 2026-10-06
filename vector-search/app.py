@@ -11,9 +11,9 @@ from databricks.sdk import WorkspaceClient
 # Set up logging
 logging.basicConfig(level=logging.ERROR)
 
-# Configuration variables
+# Injected from app resources via valueFrom (see app.yaml / databricks.yml)
 VECTOR_SEARCH_INDEX_NAME = os.getenv("VECTOR_SEARCH_INDEX_NAME")
-EMBEDDING_MODEL_ENDPOINT_NAME = "databricks-gte-large-en"
+EMBEDDING_MODEL_ENDPOINT_NAME = os.getenv("EMBEDDING_ENDPOINT", "databricks-gte-large-en")
 
 # Initialize Databricks SDK client
 workspace_client = WorkspaceClient()
@@ -171,4 +171,6 @@ with gr.Blocks() as demo:
                     fn=run_vector_search, inputs=query_input, outputs=search_result
                 )
 
-demo.launch()
+demo.launch(
+    server_name="0.0.0.0", server_port=int(os.getenv("DATABRICKS_APP_PORT", "8000"))
+)

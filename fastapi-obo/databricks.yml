@@ -1,0 +1,32 @@
+bundle:
+  name: fastapi_obo
+
+variables:
+  warehouse_id:
+    description: SQL warehouse queried on behalf of the signed-in user
+
+resources:
+  apps:
+    fastapi_obo:
+      name: fastapi-obo-${bundle.target}
+      description: FastAPI backend querying Unity Catalog as the signed-in user
+      source_code_path: .
+      user_api_scopes:
+        - sql
+      resources:
+        - name: sql-warehouse
+          sql_warehouse:
+            id: ${var.warehouse_id}
+            permission: CAN_USE
+      lifecycle:
+        started: true
+
+targets:
+  dev:
+    mode: development
+    default: true
+  prod:
+    mode: production
+    workspace:
+      # Deploy prod from CI as a service principal so there is exactly one copy
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}

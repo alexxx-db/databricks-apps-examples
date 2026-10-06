@@ -1,17 +1,19 @@
 command:
-  - python
-  - src/app.py
+  - gunicorn
+  - --chdir=src
+  - app:server
+  - --workers=2
+  - --bind=0.0.0.0:8000
+  # Match the Apps proxy's 120s request limit; gunicorn's 30s default kills cold-warehouse queries
+  - --timeout=120
 
 env:
-  - name: "WAREHOUSE_HTTP_PATH"
-    value: "/sql/1.0/warehouses/762f1d756f0424f6"
-  - name: "UNITY_CATALOG_CATALOG"
+  - name: DATABRICKS_WAREHOUSE_ID
+    valueFrom: sql-warehouse
+  # PGHOST / PGDATABASE / PGUSER / PGPORT are injected by the `database` resource
+  - name: UNITY_CATALOG_CATALOG
     value: "main"
-  - name: "UNITY_CATALOG_SCHEMA"
+  - name: UNITY_CATALOG_SCHEMA
     value: "default"
-  - name: "POSTGRES_HOST"
-    value: "instance-111abc.database.cloud.databricks.com"
-  - name: "POSTGRES_DATABASE"
-    value: "databricks_postgres"
-  - name: "POSTGRES_SCHEMA"
+  - name: POSTGRES_SCHEMA
     value: "public"

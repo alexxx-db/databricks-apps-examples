@@ -3,7 +3,7 @@ name = "auth-demo"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.11"
 dependencies = [
     "dash>=3.0.4",
     "dash-iconify>=0.1.2",
@@ -12,5 +12,6 @@ dependencies = [
     "databricks-sql-connector>=4.0.3",
     "pandas>=2.2.3",
     "pyarrow>=20.0.0",
+    "gunicorn>=23.0.0",
     "pyjwt>=2.10.1",
 ]

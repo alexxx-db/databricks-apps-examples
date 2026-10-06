@@ -1,23 +1,28 @@
 # Databricks Apps Examples
 
-## Background
+Deployable reference apps for [Databricks Apps](https://docs.databricks.com/dev-tools/databricks-apps/). Each folder is a self-contained app with its own bundle (`databricks.yml`) and `dev` / `prod` targets.
 
-[Click here](https://www.youtube.com/watch?v=Equ7PBeM-Mw) for a walkthrough of Databricks Apps!
+| Example | Stack | Shows |
+|---|---|---|
+| [`appkit-analytics`](appkit-analytics/) | AppKit (TypeScript/React) | Typed SQL queries run on behalf of the user. **Recommended starting point for new apps** |
+| [`fastapi-obo`](fastapi-obo/) | FastAPI | Python JSON backend querying Unity Catalog as the signed-in user |
+| [`auth-demo`](auth-demo/) | Dash | Service principal vs on-behalf-of-user authorization, side by side |
+| [`apps-write-back`](apps-write-back/) | Dash + AG Grid | Form, grid-edit and Excel writeback to Unity Catalog and Lakebase |
+| [`dash-dbx-writeback`](dash-dbx-writeback/) | Dash + AG Grid | Excel-like writeback to Lakebase with OAuth token rotation and tests |
+| [`vector-search`](vector-search/) | Gradio | PDF ingestion and search over a Vector Search index |
+| [`apps-shell`](apps-shell/) | Dash | Multi-page app skeleton |
 
-Databricks Apps provides a new modality of serving data and AI applications on the Databricks Intelligence Platform. In general, application-views are particularly impactful to businesses because they truly _democratize data intelligence_. Meaning, even the _least technical_ of business analysts are able to unlock the full value of their organization's data stack with the power of slick, frontend applications.
+**Read [PATTERNS.md](PATTERNS.md) first.** It covers the auth, SQL-safety, resource, data-path and serving conventions every example follows.
 
-Databricks Apps (on release in October 2024) support a variety of Python data application frameworks, including:
-- Flask
-- Dash
-- FastAPI
-- Gradio
-- Streamlit
-- _and many more..._
+### Deploy any example
 
-## What is this repository?
+```bash
+cd <example>
+databricks auth login --host https://<workspace> --profile <PROFILE>
+databricks bundle deploy -t dev --var <name>=<value> --profile <PROFILE>   # variables are listed in each databricks.yml
+```
 
-Databricks staffs over 2,000 talented, technical Solution Architects with a variety of expertises. Our Solution Architects will place their most interesting, compelling, and implementable applications here so that you, the Databricks user, can easily access and try them out on your end. 
-
+Each example's README lists its variables, required permissions and local-run steps. [A video walkthrough of Databricks Apps](https://www.youtube.com/watch?v=Equ7PBeM-Mw) is also available.
 
 ## Important notices
 

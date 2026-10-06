@@ -1,0 +1,43 @@
+bundle:
+  name: vector_search_app
+
+variables:
+  vector_search_index:
+    description: Full name (catalog.schema.index) of the direct access index created by setup.py
+  embedding_endpoint:
+    description: Embedding model serving endpoint
+    default: databricks-gte-large-en
+
+resources:
+  apps:
+    vector_search_app:
+      name: vector-search-${bundle.target}
+      description: PDF ingestion and search over a Vector Search direct access index
+      source_code_path: .
+      resources:
+        - name: vector-search-index
+          uc_securable:
+            securable_type: TABLE
+            securable_full_name: ${var.vector_search_index}
+            permission: SELECT
+        - name: vector-search-index-write
+          uc_securable:
+            securable_type: TABLE
+            securable_full_name: ${var.vector_search_index}
+            permission: MODIFY
+        - name: serving-endpoint
+          serving_endpoint:
+            name: ${var.embedding_endpoint}
+            permission: CAN_QUERY
+      lifecycle:
+        started: true
+
+targets:
+  dev:
+    mode: development
+    default: true
+  prod:
+    mode: production
+    workspace:
+      # Deploy prod from CI as a service principal so there is exactly one copy
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}

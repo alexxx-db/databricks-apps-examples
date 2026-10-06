@@ -5,7 +5,7 @@ from typing import List, Dict, Union, Tuple, Any
 
 from ..sample_data import INITIAL_DATA
 from ..config import db_config
-from ..database_operations import query_df, bulk_insert, check_table_exists
+from ..database_operations import query_df, bulk_insert, check_table_exists, quote_ident
 
 
 def log(message: str) -> None:
@@ -132,7 +132,7 @@ def create_table(table_name: str, df: pd.DataFrame, conn: Any) -> Any:
                 sql_type = "TIMESTAMP"
             else:
                 sql_type = "TEXT"
-            columns.append(f'"{col}" {sql_type}')
+            columns.append(f"{quote_ident(col)} {sql_type}")
             log(f"→ create_table: Column '{col}' -> {sql_type}")
 
         # Create table with proper schema
@@ -204,7 +204,7 @@ def insert_overwrite_table(
 
                 # Get column names
                 columns = df.columns.tolist()
-                columns_str = ", ".join([f'"{col}"' for col in columns])
+                columns_str = ", ".join(quote_ident(col) for col in columns)
 
                 if overwrite:
                     log(f"→ insert_overwrite_table: Truncating table before insert")

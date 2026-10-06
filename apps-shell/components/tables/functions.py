@@ -17,8 +17,9 @@ def get_connection():
 
 def read_table(table_name, conn):
     with conn.cursor() as cursor:
-        query = f"SELECT * FROM {table_name} LIMIT 100"
-        cursor.execute(query)
+        # IDENTIFIER() binds the user-supplied name as a parameter, never as SQL text
+        cursor.execute(
+            "SELECT * FROM IDENTIFIER(:table_name) LIMIT 100", {"table_name": table_name}
+        )
         df = cursor.fetchall_arrow().to_pandas()
-        print(df)
         return df

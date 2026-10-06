@@ -9,18 +9,19 @@ It showcases two authorization patterns:
 
 ![Databricks Apps: Service Principal and OBO Authorization Demo](assets/screenshot.png "Databricks Apps: Service Principal and OBO Authorization Demo")
 
-## Deploying as a Databricks App
+## Deploy
 
-1. Load this GitHub repository as a [Databricks Git folder](https://docs.databricks.com/en/repos/index.html) in your Databricks workspace.
-1. In your Databricks workspace, switch to **Compute** -> **Apps**.
-1. Choose **Create app**.
-1. Under **Choose how to start**, select **Custom** and choose **Next**.
-1. Input a name for your app.
-1. Under **Advanced settings**, make sure to enable the SQL auth scope by ticking the box next to **Allow the app to execute SQL and manage SQL related resources in Databricks**.
-1. Choose **Create app**.
-1. Once your app compute has started, choose **Deploy**.
-1. Navigate to your new Git folder and select the `auth-demo` folder.
-1. Choose **Deploy**.
+```bash
+databricks auth login --host https://<workspace> --profile <PROFILE>
+databricks bundle deploy -t dev --var warehouse_id=<WAREHOUSE_ID> --profile <PROFILE>
+databricks bundle open auth_demo -t dev --profile <PROFILE>
+```
+
+| Variable | Meaning |
+|---|---|
+| `warehouse_id` | SQL warehouse the app's service principal may use |
+
+**Permissions.** The bundle grants the service principal `CAN_USE` on the warehouse and requests the `sql` user API scope (on-behalf-of-user). For the service-principal path, also grant the principal `USE CATALOG`, `USE SCHEMA` and `SELECT` on the tables you want to query. The on-behalf-of-user path needs nothing extra: it uses the signed-in user's own grants.
 
 ## Running Locally
 
@@ -53,6 +54,7 @@ It showcases two authorization patterns:
 | dash                     | Framework for building analytical web applications | MIT          | https://github.com/plotly/dash                      |
 | dash-iconify             | Icon components for Dash apps                      | MIT          | https://github.com/snehilvj/dash-iconify            |
 | dash_mantine_components  | Mantine components for Dash                        | MIT          | https://github.com/snehilvj/dash-mantine-components |
+| gunicorn                 | WSGI HTTP server                                   | MIT          | https://github.com/benoitc/gunicorn                 |
 | databricks-sdk           | Databricks SDK for Python                          | Apache 2.0   | https://github.com/databricks/databricks-sdk-py     |
 | databricks-sql-connector | Databricks SQL Connector for Python                | Apache 2.0   | https://github.com/databricks/databricks-sql-python |
 | Flask                    | Lightweight WSGI web application framework         | BSD 3-Clause | https://github.com/pallets/flask                    |

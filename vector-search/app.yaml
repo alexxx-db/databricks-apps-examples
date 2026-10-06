@@ -1,8 +1,9 @@
 command:
-- gradio
-- app.py
+  - python
+  - app.py
+
 env:
-- name: VECTOR_SEARCH_ENDPOINT_NAME
-  value: null
-- name: VECTOR_SEARCH_INDEX_NAME
-  value: null
+  - name: VECTOR_SEARCH_INDEX_NAME
+    valueFrom: vector-search-index
+  - name: EMBEDDING_ENDPOINT
+    valueFrom: serving-endpoint

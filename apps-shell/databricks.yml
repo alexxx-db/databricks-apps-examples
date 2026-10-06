@@ -1,0 +1,30 @@
+bundle:
+  name: apps_shell
+
+variables:
+  warehouse_id:
+    description: SQL warehouse used to read tables
+
+resources:
+  apps:
+    apps_shell:
+      name: apps-shell-${bundle.target}
+      description: Multi-page Dash shell for Databricks Apps
+      source_code_path: .
+      resources:
+        - name: sql-warehouse
+          sql_warehouse:
+            id: ${var.warehouse_id}
+            permission: CAN_USE
+      lifecycle:
+        started: true
+
+targets:
+  dev:
+    mode: development
+    default: true
+  prod:
+    mode: production
+    workspace:
+      # Deploy prod from CI as a service principal so there is exactly one copy
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}

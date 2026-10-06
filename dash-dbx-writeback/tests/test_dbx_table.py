@@ -1,5 +1,8 @@
 import pandas as pd
 import pytest
+
+# Needs a live Lakebase instance; CI runs `pytest -m "not integration"`
+pytestmark = pytest.mark.integration
 import os
 
 from unittest.mock import Mock, patch, MagicMock

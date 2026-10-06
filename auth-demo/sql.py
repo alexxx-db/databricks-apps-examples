@@ -41,10 +41,11 @@ def run_query(table_name, conn):
     if not table_name or not conn:
         return pd.DataFrame()
 
-    query = f"SELECT * FROM {table_name} LIMIT 1000"
+    # IDENTIFIER() binds the user-supplied name as a parameter, never as SQL text
+    query = "SELECT * FROM IDENTIFIER(:table_name) LIMIT 1000"
     try:
         with conn.cursor() as cursor:
-            cursor.execute(query)
+            cursor.execute(query, {"table_name": table_name})
             df = cursor.fetchall_arrow().to_pandas()
             for col in df.columns:
                 if pd.api.types.is_datetime64_any_dtype(

@@ -4,14 +4,15 @@
 # MAGIC
 # MAGIC Follow the instruction in this notebook to deploy the Databricks Apps and Vector Search Gradio example application.
 # MAGIC
-# MAGIC This application requires the following three Databricks resources:
-# MAGIC 1. A Unity Catalog schema to store the vector search index
-# MAGIC 1. Vector search endpoint
-# MAGIC 1. Databricks app compute resource
+# MAGIC This notebook creates the one-time infrastructure the app needs:
+# MAGIC 1. A vector search endpoint (unless you supply one)
+# MAGIC 1. A direct access vector search index in your Unity Catalog schema
+# MAGIC
+# MAGIC The app itself is deployed with the bundle in this folder (`databricks.yml`); the last cell prints the command.
 # MAGIC
 # MAGIC Start by configuring a Unity Catalog schema name in the next notebook section in **cell 5: Define schema name and existing resources**.
 # MAGIC
-# MAGIC Optionally, input an existing vector search endpoint and app resource name. If you do not specify these resources, they will be created for you.
+# MAGIC Optionally, input an existing vector search endpoint. If you do not specify one, it will be created for you.
 
 # COMMAND ----------
 
@@ -21,7 +22,7 @@
 # COMMAND ----------
 
 # DBTITLE 1,Install required packages
-# MAGIC %pip install databricks-sdk>=0.38.0 pyyaml --quiet
+# MAGIC %pip install databricks-sdk>=0.38.0 --quiet
 
 # COMMAND ----------
 
@@ -36,14 +37,11 @@ schema_name = ""  # Example: catalog.schema
 
 # Optionally, input your existing resources here
 vector_search_endpoint_name = ""
-app_compute_name = ""
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC Choose **Run all** to deploy your application. This will take a couple of minutes.
-# MAGIC
-# MAGIC You will find the app URL  in the output of the last cell in this notebook.
+# MAGIC Choose **Run all**. This will take a couple of minutes.
 
 # COMMAND ----------
 
@@ -57,10 +55,8 @@ app_compute_name = ""
 # COMMAND ----------
 
 # DBTITLE 1,Import dependencies and create workspace client
-import os
 import json
 import uuid
-import yaml
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.service.vectorsearch import (
     DirectAccessVectorIndexSpec,
@@ -68,12 +64,6 @@ from databricks.sdk.service.vectorsearch import (
     VectorIndexType,
     EndpointType,
     EndpointStatusState,
-)
-from databricks.sdk.service.apps import (
-    App,
-    ApplicationState,
-    AppDeployment,
-    AppDeploymentMode,
 )
 
 w = WorkspaceClient()
@@ -135,67 +125,10 @@ except Exception as e:
 
 # COMMAND ----------
 
-# MAGIC %md
-# MAGIC ## Get or create Databricks app compute
-
-# COMMAND ----------
-
-# DBTITLE 1,Get or create Databricks app compute
-if app_compute_name:
-    print(f"Checking app compute {app_compute_name}...")
-    try:
-        app = w.apps.get(app_compute_name)
-        if app.app_status.state == ApplicationState.RUNNING:
-            print(f"App compute {app.name} confirmed and in status RUNNING.")
-        else:
-            print("App compute exists but does not appear to be in status RUNNING.")
-    except Exception as e:
-        print(e)
-else:
-    compute_name = f"{str(uuid.uuid4().hex)[:12]}_app"
-    print(f"Creating app compute {compute_name}. This will take a few minutes.")
-    try:
-        new_app = App(name=compute_name)
-        app = w.apps.create_and_wait(app=new_app)
-        app_compute_name = app.name
-        print(f"App compute {app_compute_name} created.")
-    except Exception as e:
-        print(e)
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ## Deploy the app
-
-# COMMAND ----------
-
-# DBTITLE 1,Update app.yaml with vector search endpoint and index
-with open("app.yaml", "r") as file:
-    config = yaml.safe_load(file)
-
-for env_var in config.get("env", []):
-    if env_var["name"] == "VECTOR_SEARCH_ENDPOINT_NAME":
-        env_var["value"] = vector_search_endpoint_name
-    elif env_var["name"] == "VECTOR_SEARCH_INDEX_NAME":
-        env_var["value"] = f"{schema_name}.{vector_search_index_name}"
-
-with open("app.yaml", "w") as file:
-    yaml.safe_dump(config, file)
-
-# COMMAND ----------
-
-# DBTITLE 1,Deploy the application
-try:
-    new_deployment = AppDeployment(
-        source_code_path=os.getcwd(),
-    )
-
-    deployment = w.apps.deploy_and_wait(
-        app_name=app_compute_name, app_deployment=new_deployment
-    )
-    print(f"Your app {app_compute_name} has been deployed successfully.")
-
-    url = w.apps.get(name=app_compute_name).url
-    print(f"Your app URL: {url}")
-except Exception as e:
-    print(e)
+# DBTITLE 1,Deploy the app with the bundle
+print("Infrastructure ready. From the vector-search folder on your machine, run:\n")
+print(
+    "databricks bundle deploy -t dev "
+    f"--var vector_search_index={schema_name}.{vector_search_index_name} "
+    "--profile <PROFILE>"
+)

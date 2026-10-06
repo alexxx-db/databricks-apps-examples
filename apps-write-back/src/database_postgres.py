@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 import time
 import urllib.parse
 from contextlib import contextmanager
@@ -39,9 +40,10 @@ class Database:
             self.workspace_client = WorkspaceClient()
         self.postgres_password = None
         self.last_password_refresh = 0
-        postgres_host = os.getenv("POSTGRES_HOST")
-        postgres_port = int(os.getenv("POSTGRES_PORT", "5432"))
-        postgres_database = os.getenv("POSTGRES_DATABASE", "databricks_postgres")
+        # PG* vars are injected by the app's Lakebase `database` resource; set them in .env locally
+        postgres_host = os.getenv("PGHOST")
+        postgres_port = int(os.getenv("PGPORT", "5432"))
+        postgres_database = os.getenv("PGDATABASE", "databricks_postgres")
         is_deployed = os.getenv("DATABRICKS_APP_NAME") is not None
         raw_username = None
         if is_deployed:
@@ -75,8 +77,8 @@ class Database:
         self.engine = create_engine(
             db_url,
             poolclass=QueuePool,
-            pool_size=20,
-            max_overflow=30,
+            pool_size=5,
+            max_overflow=5,
             pool_pre_ping=True,
             pool_recycle=1800,
             pool_timeout=30,
@@ -265,6 +267,10 @@ def update_records_from_dataframe(
     total_affected = 0
 
     update_cols = [col for col in df_updates.columns if col != pk_column]
+    # Column names arrive from the browser (grid rowData); quoting alone can't stop injection
+    bad = [c for c in [pk_column, *update_cols] if not re.fullmatch(r"\w+", c)]
+    if bad:
+        raise ValueError(f"Invalid column names: {bad}")
 
     logger.info(f"[DB] Updating {len(df_updates)} records in {full_table_name}")
 

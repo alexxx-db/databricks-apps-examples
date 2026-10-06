@@ -33,14 +33,6 @@ log("=" * 60)
 log("INITIALIZING DASH APP")
 log("=" * 60)
 
-# Initialize database tables with sample data if empty
-try:
-    from .initialize_app import initialize_tables_on_startup
-    initialize_tables_on_startup()
-except Exception as e:
-    log(f"⚠️  Database initialization failed (will retry on first use): {e}")
-    # Don't fail app startup if DB isn't ready yet
-
 # Create the app instance FIRST
 app = Dash(
     name=__package__,
@@ -48,6 +40,7 @@ app = Dash(
     suppress_callback_exceptions=True,
     use_pages=True,
 )
+server = app.server  # WSGI entrypoint for gunicorn (see app.yml)
 
 # Now import pages and callbacks AFTER app is created
 from . import pages  # noqa: F401, E402
@@ -223,7 +216,7 @@ if __name__ == "__main__":
     log("STARTING DASH APP SERVER")
     log("=" * 60)
     try:
-        app.run(debug=True)
+        app.run()  # local only; set DASH_DEBUG=true for dev tools
     finally:
         # Ensure connection is closed on shutdown
         close_all_connections()

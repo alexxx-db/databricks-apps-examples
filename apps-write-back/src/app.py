@@ -22,6 +22,7 @@ app = Dash(
     pages_folder="pages",
     suppress_callback_exceptions=True,
 )
+server = app.server  # WSGI entrypoint for gunicorn (see app.yaml)
 
 layout = dmc.AppShell(
     [
@@ -103,4 +104,4 @@ app.layout = dmc.MantineProvider(
 )
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run()  # local only; set DASH_DEBUG=true for dev tools
