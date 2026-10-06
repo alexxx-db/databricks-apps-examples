@@ -2,7 +2,8 @@ import os
 from databricks import sql
 from databricks.sdk.core import Config
 
-DATABRICKS_SQL_WAREHOUSE_ID = os.getenv("DATABRICKS_SQL_WAREHOUSE_ID")
+# Injected by the sql-warehouse resource; set it in your shell locally
+DATABRICKS_SQL_WAREHOUSE_ID = os.environ["DATABRICKS_SQL_WAREHOUSE_ID"]
 
 cfg = Config()
 

@@ -25,6 +25,18 @@ DELTA_CATALOG = os.getenv("UNITY_CATALOG_CATALOG")
 DELTA_SCHEMA = os.getenv("UNITY_CATALOG_SCHEMA")
 POSTGRES_SCHEMA = os.getenv("POSTGRES_SCHEMA")
 
+# The only columns save_changes may write. Column names come from browser-supplied rowData, so anything
+# else (including SQL fragments) is tampering; the update functions trust what they are given.
+EDITABLE_COLUMNS = {
+    "product_id",
+    "country_code",
+    "regulation_type",
+    "compliance_status",
+    "valid_from",
+    "valid_until",
+    "notes",
+}
+
 
 DATA_SOURCES = {
     "delta": {
@@ -395,6 +407,9 @@ def save_changes(n_clicks, changes, grid_data, refresh_trigger_value):
             return dash.no_update, dash.no_update, dash.no_update, dash.no_update
 
         df_updates = pd.DataFrame(update_records)
+        not_editable = set(df_updates.columns) - EDITABLE_COLUMNS - {pk_column}
+        if not_editable:
+            raise ValueError(f"Columns are not editable: {sorted(not_editable)}")
 
         config["update_func"](df_updates, table_name)
 

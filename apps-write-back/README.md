@@ -76,7 +76,7 @@ To run the application locally for development:
    databricks auth login --host <databricks-workspace-url> --profile <my-profile>
    ```
 
-2. **Start the application** (set `DATABRICKS_WAREHOUSE_ID` and `PGHOST` in `.env` first; these are injected automatically when deployed):
+2. **Start the application** (set `DATABRICKS_WAREHOUSE_ID` and `PGHOST` in `.env` first; they replace the old `WAREHOUSE_HTTP_PATH` / `POSTGRES_HOST` and are injected automatically when deployed):
 
    ```bash
    databricks apps run-local --prepare-environment --profile <my-profile>

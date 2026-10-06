@@ -33,7 +33,9 @@ Rules:
 
 - Table names: `SELECT * FROM IDENTIFIER(:table_name)` with a named parameter (`auth-demo/sql.py`).
 - Values: always parameters (`?` / `:name` for the SQL connector, `%s` for psycopg).
-- Column names from a grid or CSV upload: check against `\w+` (Delta, `apps-write-back/src/database_delta.py`) or escape with `quote_ident` (Postgres, `dash-dbx-writeback/.../database_operations.py`). Quoting with backticks or double quotes alone is not enough.
+- Column names from a grid: reject anything not in an explicit editable-column allowlist (`EDITABLE_COLUMNS` in `apps-write-back/src/pages/table_edit.py`). A regex stops injection but still lets a tampered request write hidden columns.
+- Column names from a CSV upload, which become new columns: escape them with `quote_ident` (`dash-dbx-writeback/.../database_operations.py`). Quoting with backticks or double quotes alone is not enough.
+- Required config (`DATABRICKS_WAREHOUSE_ID`, `PGHOST`): read with `os.environ[...]` so a missing value fails at startup with its name, not later as host `None`.
 
 ## Resources, not IDs
 

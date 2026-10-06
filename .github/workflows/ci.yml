@@ -5,12 +5,17 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   python:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
 
       - name: Lint (runtime errors only, see ruff.toml)
         run: uvx ruff check .
@@ -37,8 +42,10 @@ jobs:
       run:
         working-directory: appkit-analytics
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
           cache: npm
@@ -47,21 +54,26 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm run typecheck
       - run: npm run lint:ast-grep
-      - run: npm test
+      # No `npm test`: the template has no tests and vitest passes with none. Add one before gating on it.
 
   bundles:
     runs-on: ubuntu-latest
-    # Add these repo secrets (a service principal on a sandbox workspace) to enable this job
+    # Add repo secrets DATABRICKS_HOST / _CLIENT_ID / _CLIENT_SECRET (a service principal on a
+    # sandbox workspace) to enable this job. Only the validate step sees the credentials.
     env:
-      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
-      DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
-      DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+      HAS_WORKSPACE: ${{ secrets.DATABRICKS_HOST != '' }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: databricks/setup-cli@main
-        if: env.DATABRICKS_HOST != ''
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: databricks/setup-cli@9230f12203ef173d0b901846f62a55ce997efef7 # v1.19.0
+        if: env.HAS_WORKSPACE == 'true'
       - name: Validate every bundle (dev and prod)
-        if: env.DATABRICKS_HOST != ''
+        if: env.HAS_WORKSPACE == 'true'
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
         run: |
           set -e
           validate() {

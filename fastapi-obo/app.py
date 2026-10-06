@@ -6,7 +6,7 @@ from databricks.sql.exc import ServerOperationError
 from fastapi import FastAPI, Header, HTTPException, Query
 
 cfg = Config()
-WAREHOUSE_HTTP_PATH = f"/sql/1.0/warehouses/{os.getenv('DATABRICKS_WAREHOUSE_ID')}"
+WAREHOUSE_HTTP_PATH = f"/sql/1.0/warehouses/{os.environ['DATABRICKS_WAREHOUSE_ID']}"  # from the sql-warehouse resource
 DEPLOYED = os.getenv("DATABRICKS_APP_NAME") is not None
 
 app = FastAPI(title="Databricks Apps FastAPI example")

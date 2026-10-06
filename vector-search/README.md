@@ -28,6 +28,14 @@ Use this sample as a starting point to build your own applications based on Data
 | `vector_search_index` | Full name of the index created by `setup.py` |
 | `embedding_endpoint` | Embedding endpoint (default `databricks-gte-large-en`) |
 
-**Permissions.** The bundle grants the app's service principal `SELECT` and `MODIFY` on the index and `CAN_QUERY` on the embedding endpoint. It also needs `USE CATALOG` / `USE SCHEMA` on the index's catalog and schema.
+3. **Allow ingestion (once).** Upserts need `MODIFY` on the index, which an app resource can't add alongside `SELECT`, so grant it to the app's service principal:
+
+   ```bash
+   SP=$(databricks apps get vector-search-dev -o json --profile <PROFILE> | jq -r .service_principal_client_id)
+   databricks grants update table <catalog.schema.index> --profile <PROFILE> \
+     --json "{\"changes\": [{\"principal\": \"$SP\", \"add\": [\"MODIFY\"]}]}"
+   ```
+
+**Permissions.** The bundle grants the app's service principal `SELECT` on the index and `CAN_QUERY` on the embedding endpoint. Step 3 adds `MODIFY`. The principal also needs `USE CATALOG` / `USE SCHEMA` on the index's catalog and schema.
 
 > Every app user writes into the same index, and documents can't be deleted from the UI. For production, prefer a Delta Sync index over a governed source table.

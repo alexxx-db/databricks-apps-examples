@@ -1,6 +1,6 @@
 import dash
 import dash_mantine_components as dmc
-from dash import callback, Input, Output, dash_table
+from dash import callback, Input, Output, State, dash_table
 from .functions import get_connection, read_table
 
 dash.register_page(
@@ -58,15 +58,15 @@ layout = dmc.Stack(
     Output("table-output", "data"),
     Output("table-output", "columns"),
     Input("run-query", "n_clicks"),
-    Input("table-name", "value"),
+    State("table-name", "value"),  # State: typing must not re-run the query
 )
 def read_table_callback(n_clicks, table_name):
     if not n_clicks:
         return [], []
 
     try:
-        conn = get_connection()
-        df = read_table(table_name, conn)
+        with get_connection() as conn:
+            df = read_table(table_name, conn)
 
         data = df.to_dict("records")
 

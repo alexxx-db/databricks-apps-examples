@@ -1,6 +1,5 @@
 import logging
 import os
-import re
 import time
 import urllib.parse
 from contextlib import contextmanager
@@ -41,7 +40,7 @@ class Database:
         self.postgres_password = None
         self.last_password_refresh = 0
         # PG* vars are injected by the app's Lakebase `database` resource; set them in .env locally
-        postgres_host = os.getenv("PGHOST")
+        postgres_host = os.environ["PGHOST"]  # replaces the old POSTGRES_HOST
         postgres_port = int(os.getenv("PGPORT", "5432"))
         postgres_database = os.getenv("PGDATABASE", "databricks_postgres")
         is_deployed = os.getenv("DATABRICKS_APP_NAME") is not None
@@ -267,10 +266,6 @@ def update_records_from_dataframe(
     total_affected = 0
 
     update_cols = [col for col in df_updates.columns if col != pk_column]
-    # Column names arrive from the browser (grid rowData); quoting alone can't stop injection
-    bad = [c for c in [pk_column, *update_cols] if not re.fullmatch(r"\w+", c)]
-    if bad:
-        raise ValueError(f"Invalid column names: {bad}")
 
     logger.info(f"[DB] Updating {len(df_updates)} records in {full_table_name}")
 

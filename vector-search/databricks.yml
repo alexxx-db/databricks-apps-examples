@@ -15,16 +15,13 @@ resources:
       description: PDF ingestion and search over a Vector Search direct access index
       source_code_path: .
       resources:
+        # One resource per securable: SELECT for queries (documented pattern). Upserts also need MODIFY,
+        # granted once after the first deploy (see README).
         - name: vector-search-index
           uc_securable:
             securable_type: TABLE
             securable_full_name: ${var.vector_search_index}
             permission: SELECT
-        - name: vector-search-index-write
-          uc_securable:
-            securable_type: TABLE
-            securable_full_name: ${var.vector_search_index}
-            permission: MODIFY
         - name: serving-endpoint
           serving_endpoint:
             name: ${var.embedding_endpoint}
