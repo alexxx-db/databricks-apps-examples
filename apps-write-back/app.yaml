@@ -14,6 +14,6 @@ env:
   - name: UNITY_CATALOG_CATALOG
     value: "main"
   - name: UNITY_CATALOG_SCHEMA
-    value: "default"
+    value: "apps_examples"
   - name: POSTGRES_SCHEMA
-    value: "public"
+    value: "apps_examples"

@@ -55,11 +55,11 @@ databricks apps get apps-write-back-dev --profile <PROFILE>   # note service_pri
 | `lakebase_instance` | Lakebase database instance name |
 | `lakebase_database` | Database in that instance (default `databricks_postgres`) |
 
-The bundle grants the app's service principal `CAN_USE` on the warehouse and `CAN_CONNECT_AND_CREATE` on the Lakebase database. Lakebase connection details (`PGHOST`, `PGDATABASE`, `PGUSER`, `PGPORT`) are injected automatically. Catalog, schema and Postgres schema names are plain values in `app.yaml` (`main` / `default` / `public`); change them there if you use different ones.
+The bundle grants the app's service principal `CAN_USE` on the warehouse and `CAN_CONNECT_AND_CREATE` on the Lakebase database. Lakebase connection details (`PGHOST`, `PGDATABASE`, `PGUSER`, `PGPORT`) are injected automatically. Catalog, schema and Postgres schema names are plain values in `app.yaml` (`main` / `apps_examples` / `apps_examples`), a dedicated schema so the demo tables never collide with anything else. Change them there if you use different ones.
 
 ### 3. Database setup
 
-The interactive setup scripts seed the example tables and grant the app's service principal (the `service_principal_client_id` from step 2) access to them:
+The interactive setup scripts seed the example tables and grant the app's service principal (the `service_principal_client_id` from step 2) access to them. The Delta script also creates the `excel_staging` Volume in the same catalog and schema. The Excel upload stages its rows there as a Parquet file and loads them with one `INSERT OVERWRITE … FROM read_files(…)`, so the service principal gets `READ VOLUME` and `WRITE VOLUME` on it:
 
 ```bash
 uv run python setup/setup_delta_tables.py

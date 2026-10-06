@@ -22,6 +22,9 @@ import textwrap
 from databricks import sql
 from databricks.sdk.core import Config
 
+# Must match STAGING_VOLUME in src/database_delta.py
+STAGING_VOLUME = "excel_staging"
+
 # --- SQL Definitions for Tables ---
 
 # This dictionary holds the table names and their corresponding SQL commands.
@@ -217,6 +220,14 @@ def grant_permissions(conn, catalog, schema, table_list, service_principal_id):
     if not execute_sql(conn, sql_schema, f"Granting USE SCHEMA on '{schema}'"):
         success = False
 
+    # Grant on the staging volume used for Excel bulk loads
+    sql_volume = (
+        f"GRANT READ VOLUME, WRITE VOLUME ON VOLUME `{catalog}`.`{schema}`.`{STAGING_VOLUME}` "
+        f"TO `{service_principal_id}`"
+    )
+    if not execute_sql(conn, sql_volume, f"Granting READ/WRITE VOLUME on '{STAGING_VOLUME}'"):
+        success = False
+
     # Grant on Tables
     for table_name in table_list:
         full_table_name = f"`{catalog}`.`{schema}`.`{table_name}`"
@@ -281,6 +292,11 @@ def main():
 
         # Create tables
         created_tables, skipped_tables = create_tables(conn, catalog, schema)
+        execute_sql(
+            conn,
+            f"CREATE VOLUME IF NOT EXISTS `{catalog}`.`{schema}`.`{STAGING_VOLUME}`",
+            f"Creating staging volume '{STAGING_VOLUME}'",
+        )
         print("\n--- Table Creation Summary ---")
         print(f"✓ Tables created/updated: {len(created_tables)}")
         print(f"- Tables skipped:         {skipped_tables}")

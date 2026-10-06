@@ -10,4 +10,4 @@ command:
 
 env:
   - name: LAKEBASE_SCHEMA
-    value: public
+    value: apps_examples

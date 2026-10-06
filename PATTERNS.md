@@ -63,7 +63,7 @@ Deploying grants the permission to the app's service principal. A Lakebase `data
 | Transactional writes, forms, grid edits, low-latency lookups | Lakebase (Postgres) |
 | Lakebase data needed for analytics | Synced tables / scheduled MERGE into Unity Catalog |
 
-Avoid bulk `INSERT ... VALUES (?, ?, …)` through the warehouse for app writes. It hits parameter and statement limits and rewrites the table on every save.
+Avoid bulk `INSERT ... VALUES (?, ?, …)` through the warehouse for app writes. It hits parameter and statement limits on real-sized data. For bulk loads into Delta, stage a Parquet file in a Unity Catalog Volume (`WorkspaceClient().files.upload`) and load it with one `INSERT OVERWRITE … SELECT … FROM read_files(…)`, then delete the file. See `dataframe_to_delta` in `apps-write-back/src/database_delta.py`.
 
 ## Lakebase connections
 
