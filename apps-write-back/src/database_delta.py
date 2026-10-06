@@ -1,9 +1,14 @@
+import io
 import logging
 import os
+import uuid
 from contextlib import contextmanager
 
 import pandas as pd
+import pyarrow as pa
+import pyarrow.parquet as pq
 from databricks import sql
+from databricks.sdk import WorkspaceClient
 from databricks.sdk.core import Config
 from dotenv import load_dotenv
 
@@ -16,6 +21,8 @@ load_dotenv()
 WAREHOUSE_HTTP_PATH = f"/sql/1.0/warehouses/{os.environ['DATABRICKS_WAREHOUSE_ID']}"
 DELTA_CATALOG = os.getenv("UNITY_CATALOG_CATALOG")
 DELTA_SCHEMA = os.getenv("UNITY_CATALOG_SCHEMA")
+# Volume for bulk loads; created and granted by setup/setup_delta_tables.py
+STAGING_VOLUME = "excel_staging"
 
 
 cfg = Config()
@@ -169,6 +176,12 @@ def update_delta_records(
 
 
 def dataframe_to_delta(df: pd.DataFrame) -> int:
+    """Replace excel_prices with df in one atomic statement.
+
+    Rows are staged as a Parquet file in a Unity Catalog Volume and loaded with
+    INSERT OVERWRITE ... SELECT FROM read_files(). That avoids sending every cell as a
+    SQL parameter, which hits statement and parameter limits on real spreadsheets.
+    """
     columns = [
         "pricing_id",
         "product_code",
@@ -179,27 +192,26 @@ def dataframe_to_delta(df: pd.DataFrame) -> int:
         "currency",
         "price_type",
     ]
-
-    df_ordered = df[columns].copy()
-    df_final = df_ordered.astype(str).replace(["nan", "NaT"], None)
-    column_names = ", ".join(columns)
-    single_row_placeholders = f"({', '.join(['?'] * len(columns))})"
-    all_rows_placeholders = ", ".join([single_row_placeholders] * len(df_final))
-    data_flat = [
-        item for row in df_final.itertuples(index=False, name=None) for item in row
-    ]
-    table_name = _get_full_table_name("excel_prices")
-    query = (
-        f"INSERT OVERWRITE {table_name} ({column_names}) VALUES {all_rows_placeholders}"
+    # The target columns are all STRING; an explicit string schema keeps all-null columns typed
+    df_final = df[columns].map(lambda v: None if pd.isna(v) else str(v))
+    arrow_table = pa.Table.from_pandas(
+        df_final, schema=pa.schema([(c, pa.string()) for c in columns]), preserve_index=False
     )
+    buffer = io.BytesIO()
+    pq.write_table(arrow_table, buffer)
+    buffer.seek(0)
 
-    with get_connection() as conn:
-        with conn.cursor() as cursor:
-            logger.info(
-                "Overwriting %s with %d new rows in a single operation...",
-                table_name,
-                len(df_final),
-            )
-            cursor.execute(query, data_flat)
-            logger.info("Successfully overwrote the table.")
-            return len(df_final)
+    w = WorkspaceClient(config=cfg)
+    path = f"/Volumes/{DELTA_CATALOG}/{DELTA_SCHEMA}/{STAGING_VOLUME}/excel_prices_{uuid.uuid4().hex}.parquet"
+    w.files.upload(path, buffer, overwrite=True)
+    try:
+        table_name = _get_full_table_name("excel_prices")
+        column_names = ", ".join(columns)
+        logger.info("Overwriting %s with %d rows staged at %s", table_name, len(df_final), path)
+        execute_query(
+            f"INSERT OVERWRITE {table_name} ({column_names}) "
+            f"SELECT {column_names} FROM read_files('{path}', format => 'parquet')"
+        )
+        return len(df_final)
+    finally:
+        w.files.delete(path)

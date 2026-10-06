@@ -59,7 +59,7 @@ The bundle grants the app's service principal `CAN_USE` on the warehouse and `CA
 
 ### 3. Database setup
 
-The interactive setup scripts seed the example tables and grant the app's service principal (the `service_principal_client_id` from step 2) access to them:
+The interactive setup scripts seed the example tables and grant the app's service principal (the `service_principal_client_id` from step 2) access to them. The Delta script also creates the `excel_staging` Volume in the same catalog and schema. The Excel upload stages its rows there as a Parquet file and loads them with one `INSERT OVERWRITE … FROM read_files(…)`, so the service principal gets `READ VOLUME` and `WRITE VOLUME` on it:
 
 ```bash
 uv run python setup/setup_delta_tables.py
